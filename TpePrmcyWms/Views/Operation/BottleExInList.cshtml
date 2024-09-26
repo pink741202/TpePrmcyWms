@@ -1,0 +1,186 @@
+﻿@using TpePrmcyWms.Models.Service;
+@using TpePrmcyWms.Models.DOM;
+@model List<TpePrmcyWms.Models.DOM.StockBill>;
+@using Newtonsoft.Json;
+@{
+   
+}
+
+<script src="~/js/CbntSensorCommunicator.js"></script>
+
+
+<div class="MainFrame">
+    <div class="InputArea List col2">
+        <div class="form-group" style="width:45%;margin:0px 12px 5px;">
+            <label for="BatchNo" class="control-label">批號</label>
+            <input id="BatchNo" class="form-control w3-right-align" />
+        </div>
+        <div class="form-group" style="width:45%;margin:0px 12px 5px;">
+            <label for="ExpireDate" class="control-label">效期</label>
+            <input id="ExpireDate" class="form-control w3-right-align" type="date" />
+        </div>
+
+        @foreach (StockBill item in Model)
+        {
+            string FrGoOrIn = item.TradeType ? "調出" : "調入";
+            <div class="ListCard" idkey="@(item.FID)">
+                <table style="width:100%;">
+                    <tr>
+                        <td width="120px" align="left">@(item.DrugCode)</td>
+                        <td align="left" colspan="2" style="font-size:0.8em;">@(item.DrugName)</td>                        
+                    </tr>
+                    <tr>
+                        <td align="left" colspan="2"><label>來源(@(FrGoOrIn))：</label>@(item.RecNote)</td>
+                        <td width="80px" align="center" rowspan="2"><input type="button" class="GetDrawersBtn bigger1" onclick="AddingTask('@(item.FID)')" value="調入" /></td>
+                    </tr>
+                    <tr>
+                        <td align="left" colspan="2">
+                            <label>數量：</label><span style="font-size:1.4em;color:darkred;">@(Math.Round(item.TargetQty, 0))</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        }
+
+        
+    </div>
+
+    <div class="TaskArea col2" id="TaskArea"> </div>
+
+</div>
+
+
+
+<script>
+    var AllDatas = @Html.Raw(JsonConvert.SerializeObject(Model));
+    var BillModel;
+    var DrawerTaskConfig = { //開櫃子視窗的客製化設定
+        skipStep1: false, //自動按第一個櫃格
+        skipStep1When1: true, //只有一個格子,自動按下
+        hideBtnStorage: false, //不用呈現藥格
+        canLessThenTarget: false, //可少於目標量,分次
+        canLessThenTarget_confirm: "", //可少於目標量,分次的確認訊息
+        ignrStockQty: false, //有勾不扣庫存
+    }
+    //#region 感應器回傳的介面更新
+    //只能用Cmutr,因固定寫在js
+    var Cmutr = new CbntSensorCommunicator();
+    Cmutr.UpdateCallBack = function (re) {
+        //console.log(JSON.stringify(re))
+        //確認是否存在,不在就先刪了
+        if (!$("#task_" + re.drugCode).length) {
+            HideTask(re.drugCode);
+        }
+
+        //磅秤更新
+        if (re.ssrQty && re.ssrState != "2" && re.oprState != "2") {
+            $("#takeqty_" + re.drugCode).val(re.ssrQty);
+            $("#takeqty_" + re.drugCode).addClass("greenScanning");
+            setTimeout(function () { $("#takeqty_" + re.drugCode).stop(true, false).removeClass("greenScanning"); }, 600);
+        }
+        //門狀態更新
+        switch (re.ssrState) {
+            case "1":
+                if(re.oprState=="D"){
+                    $("#" + drugCode + "_step1").hide();
+                    $("#" + drugCode + "_step2").hide();
+                    $("#" + drugCode + "_step3").hide();
+                    $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>等待關門中...</p>").show();
+                }
+                break;   
+        }
+        if (re.ssrState != "0" && re.oprState != "0") {
+            $("#takeqty_" + re.drugCode + "_done").show();
+        }
+        //LED
+        if (re.ledColor != "") {
+            $("#task_" + re.drugCode + " .OperDrugInStoreArea").addClass("TaskColor_" + re.ledColor);
+            $("#" + re.drugCode + "_OpenLedColor").css("background-color", re.ledColor).css("color", "white");
+        }
+        //已開門
+        if (re.ssrState == "1" && re.oprState == "0") {
+            SetState(re.drugCode, "1");
+            $("#" + re.drugCode + "_step0").hide(1000);
+            
+            //不須輸入數量,直接下一步
+            //$("#" + re.drugCode + "_step2").show();
+            $("#takeqty_" + re.drugCode + "_done").click();
+        }
+    }
+    Cmutr.DeleteCallBack = function (drugCode) {
+        $("#" + drugCode + "_step1").hide();
+        $("#" + drugCode + "_step2").hide();
+        $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>工作已完成，２秒後自動關閉！</p>").show();
+        setTimeout(function () {
+            $("#task_" + drugCode).remove();
+            location.reload();
+        }, 2000);
+    }
+    Cmutr.AddQuReact = function (re) {
+        if ($("#" + re.DrugCode + "_step1").length == 0) { return; }
+        if (re.returnresult) { $("#" + re.DrugCode + "_step0").hide(); $("#" + re.DrugCode + "_step1").show(); }
+        else { $("#" + re.DrugCode + "_step0").html("<p style='color:red;font-size:24px;'>新增失敗</p>"); }
+    }
+    //#endregion
+
+    Cmutr.Running();
+
+
+    $(document).ready(function () {
+
+    });
+
+    //#region 新增StockBill並加入排程
+    function AddingTask(key) {
+        let qBatchNo = $("#BatchNo").val();
+        let qExpireDate = $("#ExpireDate").val();
+        if (qBatchNo == "" ^ qExpireDate == "") {
+            AlertWin("[批號]與[效期]必須皆填寫或皆不填寫!");
+            if (qBatchNo == "") { blinking("#BatchNo"); }
+            else { blinking("#ExpireDate"); }
+            return false;
+        }
+
+        $(".GetDrawersBtn").each(function(){$(this).hide();});
+        $(".ListCard").each(function(){ if ($(this).attr("idkey") != key) { $(this).hide(); } });
+        $(".form-group").hide();
+        
+        BillModel = AllDatas.find(x => x.FID == key);
+        let qDrugCode = BillModel.DrugCode;
+        BillModel.BatchNo = qBatchNo;
+        BillModel.ExpireDate = qExpireDate;
+        
+        //console.log(JSON.stringify(BillModel))
+
+        //Load資訊並呈現排程
+        if (Cmutr.QuHadDrug.length == 0){            
+            $("#TaskArea").prepend("<div class=\'taskbox\' id=\'task_" + qDrugCode + "\'>Loading..." + qDrugCode + "</div>");            
+        }
+           
+        $("#task_" + qDrugCode).load("@Url.Action("DrawerTask","FrontLoad")"
+            , { vobj: BillModel }
+            , function () { Cmutr.AddQu(qDrugCode, BillModel.BillType); }
+        )
+        
+    }
+    //#endregion
+
+    //#region 子介面呼叫 客製
+    function SaveStoreBillAndDone(obj) {
+        let goPost = new AjaxJsonPostor("@Url.Action("StockBillSave","FrontApi")", obj);
+        goPost.SuccessCallback = function (result) {
+            if (result.code == 0) {
+                //console.log("return result=" + JSON.stringify(result))
+                let upQu = { "DrugCode": obj.DrugCode, "DrawFid": obj.DrawFid, "oprState": "2", "stockBillFid": result.returnData }
+                //console.log("save upQu=" + JSON.stringify(upQu))
+                Cmutr.SetState(upQu);
+            }
+            else { AlertWin(result.returnData); }
+        }
+        goPost.Post();
+    }
+    
+    //#endregion
+
+
+</script>

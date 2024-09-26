@@ -1,0 +1,138 @@
+﻿@model List<TpePrmcyWms.Models.DOM.MapMenuOnCbnt>
+@using TpePrmcyWms.Models.Unit.Back
+
+@{
+    LoginInfo Loginfo = ViewBag.Loginfo;
+    MenuTree thisTree = Loginfo.Trees.Where(x => x.L2fid == Loginfo.Linkinfo.MenuLFid).First();
+    List<MenuTree> leftTree = Loginfo.Trees.Where(x => x.MtFid == thisTree.MtFid && x.L2Display).ToList();
+    int AtCbntFid = ViewBag.AtCbntFid;
+    int compareLastCntTitle = 0;
+}
+
+<style>
+    .MainFrame{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-bottom: 100px;
+        padding-top: 60px;
+        flex-wrap: wrap;
+    }
+
+    .MenuArea {
+        border: 0px solid red;
+        width: 90%;
+        height: 70%;
+        display: flex;
+        float: left;
+        flex-wrap:wrap;
+        align-content: stretch;
+        justify-content: space-evenly;
+    }
+
+    .SubMenuArea {
+        border: 0px solid red;
+        width: 75%;
+        height: 75%;
+        justify-content: center;
+        display: grid;
+        grid-template-columns: minmax(300px, 0.75fr);
+        grid-template-rows: repeat(auto-fill, minmax(80px, 1fr));
+        grid-gap: 25px 40px;
+        grid-auto-flow: row;
+    }
+
+    .MenuBtn, .SubMenuArea a {
+        border: 0px solid red;
+        min-width: 280px;
+        height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;    
+        font-size: 46px;
+        cursor: pointer;
+        text-decoration: none;
+        outline: none;
+        color: #fff;
+        background-color: darkslategray;
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 9px #999;
+        margin: 20px 25px;
+    }
+        .MenuBtn:hover {
+            background-color: #3e8e41
+        }
+        .MenuBtn:active {
+            background-color: #3e8e41;
+            box-shadow: 0 5px #666;
+            transform: translateY(4px);
+        }
+
+        .SubMenuArea a {
+            font-size: 42px;
+            width: 100%;
+            height: 90%;
+        }
+       
+</style>
+
+<div class="MainFrame">
+    <div class="MenuArea">
+        @for (int m = 0; m < leftTree.Count; m++)
+        {
+            if (Model.Where(x => x.MnLFid == leftTree[m].L2fid).Count() == 0) { compareLastCntTitle++; continue; } //藥櫃可用功能白名單
+            
+            if (m == 0 || leftTree[m].L1fid != leftTree[m - compareLastCntTitle].L1fid)
+            {
+                compareLastCntTitle = 1;
+                if (string.IsNullOrEmpty(leftTree[m].L1Link))
+                {
+                    <div class="MenuBtn" onclick="callsub(@(leftTree[m].L1fid))">@(leftTree[m].L1Name)</div>
+                }
+                else
+                {
+                    List<string> links = leftTree[m].L1Link.Split(',').ToList();
+                    <a class="MenuBtn" upid="@(leftTree[m].L1fid)"
+                       asp-controller="@(links[0])" asp-action="@(links[1])">
+                        @(leftTree[m].L1Name)
+                    </a>
+                }
+            }
+        }
+        @if (AtCbntFid == 9)
+        {
+            <a class="MenuBtn" id="OpenFreezerDoor">開門</a>
+        }
+    </div>
+    <div class="SubMenuArea">
+        @for (int m = 0; m < leftTree.Count; m++)
+        {
+            if (Model.Where(x => x.MnLFid == leftTree[m].L2fid).Count() == 0) { continue; } //藥櫃可用功能白名單
+            string custTitle = Model.Where(x => x.MnLFid == leftTree[m].L2fid).First().MnLTitle ?? ""
+            ;
+            List<string> links = leftTree[m].L2Link.Split(',').ToList();
+            <a class="MenuBtn" upid="@(leftTree[m].L1fid)" 
+            asp-controller="@(links[0])" asp-action="@(links[1])">
+                @(string.IsNullOrEmpty(custTitle) ? leftTree[m].L2Name : custTitle)
+            </a>
+        }
+    </div>
+    
+</div>
+
+
+
+<script>    
+    $(document).ready(function () {
+        $(".SubMenuArea").hide();
+    });
+
+    function callsub(id){
+        $(".MenuArea").hide();
+        $(".SubMenuArea .MenuBtn").each(function () {
+            if ($(this).attr("upid") == id) { $(this).show(); } else { $(this).hide(); }
+        })
+        $(".SubMenuArea").show();
+    }
+</script>

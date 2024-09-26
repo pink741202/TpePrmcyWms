@@ -1,0 +1,95 @@
+﻿<!-- ref: https://7g70g.csb.app/# -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>@ViewData["Title"] - TpePrmcyWms</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="~/css/w3.css" />
+    <link rel="stylesheet" href="~/css/w3-custom.css" />
+</head>
+
+<body style="position: relative; min-height: 100%; top: 0px;">
+    <div class="w3-container top" style="padding-top: 20px;">
+        <a class="w3schools-logo notranslate" style="position: absolute;" asp-area="" asp-controller="Ft_StockOut" asp-action="Index">藥品管理<span class="dotcom">系統</></a>
+        <div id="loginactioncontainer"
+             class="w3-right"
+             style="width: 80px; height: 50px;">
+            <div id="mypagediv" style="display: none;"></div>
+            <a id="w3loginbtn"
+               style="display: inline;"
+               class="login w3-right w3-hover-greener"
+               href="#"
+               onclick='w3_open_nav("login")'>LOG IN</a>
+        </div>
+
+        <div id="theworldsgreatest"
+             class="w3-right w3-hide-medium w3-hide-small w3-wide toptext"
+             style="
+          line-height: 50px;
+          margin-right: 20px;
+          font-family: 'Segoe UI', Arial, sans-serif;
+        ">
+            THE WORLD'S LARGEST WEB DEVELOPER SITE
+        </div>
+    </div>
+
+    <div class="w3-bar w3-theme w3-card-2 w3-wide notranslate">
+        <a class="w3-bar-item w3-button w3-hover-white w3-padding-16 hidesm"
+           href="#"><i class="fa"></i></a>
+        <a class="w3-bar-item w3-button barex w3-hover-white w3-padding-16"
+           href="#"
+           id="navbtn_tutorials">
+            TUTORIALS <i class="fa fa-caret-down" style="display: inline;"></i><i class="fa fa-caret-up" style="display: none;"></i>
+        </a>
+        <a class="w3-bar-item w3-button barex w3-hover-white w3-padding-16"
+           href="#"
+           id="navbtn_references">
+            REFERENCES <i class="fa fa-caret-down" style="display: inline;"></i><i class="fa fa-caret-up" style="display: none;"></i>
+        </a>
+        <div class="w3-right">
+            <a class="w3-bar-item w3-button w3-hover-white w3-padding-16 w3-right"
+               href="#"
+               title="Search W3Schools"><i class="fa">😄</i></a>
+            <a class="w3-bar-item w3-button w3-hover-white w3-padding-16 w3-right"
+               href="#"
+               title="Translate W3Schools"><i class="fa">😄</i></a>
+        </div>
+    </div>
+
+    <nav class="w3-sidebar w3-collapse w3-white w3-card-2" id="mySidenav">
+        <div class="w3-bar-block">
+            <div class="w3-container">
+                <h4 class="w3-margin-top">HTML and CSS</h4>
+            </div>
+            <a class="w3-bar-item w3-button" href="#">Learn HTML</a>
+            <a class="w3-bar-item w3-button" href="#">Learn CSS</a>
+            <div class="w3-container">
+                <h4 class="w3-margin-top">JavaScript</h4>
+            </div>
+            <a class="w3-bar-item w3-button" href="#">Learn JavaScript</a>
+            <a class="w3-bar-item w3-button" href="#">Learn jQuery</a>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <div class="w3-main" id="main">
+
+        <div class="w3-row w3-margin-bottom">
+            <div class="w3-col l6 w3-center" style="padding: 3%;">
+                @RenderBody()
+            </div>
+        </div>
+
+        
+        <footer class="w3-container w3-dark-grey w3-center w3-padding-32">
+            <p class="w3-medium">
+                &copy; 2024 - TpePrmcyWms - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </p>
+        </footer>
+
+        <!-- END MAIN -->
+    </div>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

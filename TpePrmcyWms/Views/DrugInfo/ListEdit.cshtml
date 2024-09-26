@@ -1,0 +1,105 @@
+﻿@model TpePrmcyWms.Models.DOM.DrugInfo
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "drugfullquery" });
+    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "DrgTakedLv" });
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.DrugName)</h4>
+<form asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="DrugCode" class="control-label"></label>
+            @if (Model.FID == 0)
+            {
+                <input asp-for="DrugCode" class="form-control" />
+            }
+            else
+            {
+                <input asp-for="DrugCode" class="form-control" readonly/>
+            }
+            <span asp-validation-for="DrugCode" class="text-danger"></span>
+        </div>        
+        <div class="form-group Span2Col">
+            <label asp-for="DrugName" class="control-label"></label>
+            <input asp-for="DrugName" class="form-control" readonly />
+            <span asp-validation-for="DrugName" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="Info_07" class="control-label"></label>
+            <input asp-for="Info_07" class="form-control" readonly />
+            <span asp-validation-for="Info_07" class="text-danger"></span>
+        </div>
+        <div class="form-group Span2Col">
+            <label asp-for="ReplaceToDrugName" class="control-label"></label>
+            <input asp-for="ReplaceToDrugName" class="form-control" list="ReplaceToDrugList" />
+            <datalist id="ReplaceToDrugList">
+                @foreach (var item in DropValueList.Where(x => x.Group == "drugfullquery" && x.Value.StartsWith(Model.DrugCode.Substring(0, Model.DrugCode.Length - 3))).ToList())
+                {
+                    <option value="@(item.Value)"> @(item.Text) </option>
+                }
+            </datalist>
+            <span asp-validation-for="ReplaceToDrugName" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="isVax" class="control-label"></label>
+            @Html.CheckBox("isVax", Model.isVax??false, new { @class = "form-check-input form-control"})
+            <span asp-validation-for="isVax" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="ChkDrugTakedLv" class="control-label"></label>
+            <select name="ChkDrugTakedLv" class="form-control" 
+                    asp-items="@(DropParamList.Where(x=>x.Group=="DrgTakedLv")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.ChkDrugTakedLv.ToString() }))">
+                
+            </select>
+            <span asp-validation-for="ChkDrugTakedLv" class="text-danger"></span>
+        </div>
+	</div>
+    <div class="ListCtrlPanel">
+		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+		{
+            <input type="button" id="QueryApi" onclick="goQueryApi()" value="同步醫院資料庫" class="CtrlBtn" />
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+    
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    
+    $(document).ready(function () {
+        $("input[list]").dblclick(function () {
+            $(this).val('');
+        });
+        $("#ReplaceToDrugName").click(function(){
+            //if ($(this).val() == "") { 
+            //    $(this).val($("#DrugCode").val().substring(0, $("#DrugCode").val().length-3)); 
+            //}
+        })
+    });
+    
+</script>
+

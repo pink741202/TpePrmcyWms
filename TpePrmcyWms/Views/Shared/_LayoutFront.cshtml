@@ -1,0 +1,126 @@
+﻿@using TpePrmcyWms.Models.Service
+@using TpePrmcyWms.Models.Unit.Back
+@{
+    LoginInfo Loginfo = ViewBag.Loginfo;
+    MenuTree thisTree = Loginfo.Trees.Where(x => x.L2fid == Loginfo.Linkinfo.MenuLFid).First();
+    //左側目錄,條件: 當下的menutop+要呈現的
+    List<MenuTree> leftTree = Loginfo.Trees.Where(x => x.MtFid == thisTree.MtFid && x.L2Display).ToList();
+    string LogoutCountdown = SysBaseServ.JsonConf("SystemBase:LogoutCountdown");
+    MenuTree backTree = Loginfo.Trees.Where(x => x.System == "BACKEND").FirstOrDefault();
+    ViewData["Title"] = thisTree.L2Name;
+
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>@ViewData["Title"] - 藥品作業平台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/w3.css" />
+    <link rel="stylesheet" href="~/css/w3-custom.css" />
+    <link rel="stylesheet" href="~/css/Front.css" />
+    <script src="~/js/jquery_3_7_1.min.js"></script>
+    <script src="~/js/site.js"></script>
+    
+</head>
+
+<body class="FrontBody">
+    <div class="w3-container top" style="padding-top: 20px;">
+        <a class="w3schools-logo notranslate" style="position: absolute;" >
+            <span style="font-size: 0.8em;">藥品操作平台 - </span> <span class="dotcom">@(thisTree.L2Name)</span>
+        </a>
+                
+        <div class="w3-right w3-wide toptext">
+            <span id="ticktime"></span>
+        </div>
+        <div class="w3-right w3-wide toptext">
+            @(Loginfo.User.Name)
+        </div>
+    </div>
+
+    <!--top menu-->
+    <div class="w3-bar w3-theme w3-card-2 w3-wide notranslate" id="TopMenu">
+        @for (int m = 0; m < Loginfo.Trees.Count; m++)
+        {
+            if ((m == 0 || Loginfo.Trees[m].MtFid != Loginfo.Trees[m - 1].MtFid) && Loginfo.Trees[m].System == "FRONTEND")
+            {
+                string[] ctrlact = Loginfo.Trees[m].L2Link.Split(',');
+                string selected = thisTree.MtFid == Loginfo.Trees[m].MtFid ? "Selected" : "";
+                <a class="w3-bar-item w3-button w3-hover-white "
+                   asp-controller="@(ctrlact[0])" asp-action="@(ctrlact[1])"
+                   id="navbtn_tutorials">
+                    <div class="MenuTopTab @(selected)">
+                        @(Loginfo.Trees[m].MtName)
+                    </div>
+                </a>
+            }
+        }        
+        <div class="w3-right">
+            @if (backTree != null)
+            {
+                <a class="w3-bar-item w3-button w3-hover-white w3-padding-16 w3-right" href="@Url.Action(backTree.L2Link.Split(',')[1],backTree.L2Link.Split(',')[0])" title="後台"><i class="fa">後台</i></a>
+            }
+            <a id="LogOutLink" class="w3-bar-item w3-button w3-hover-white w3-padding-16 w3-right" href="@Url.Action("logout","Login")" title="登出"><i class="fa">登出</i></a>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div id="MainViewSpace">
+        
+        <div class="w3-center RenderBody">
+            @RenderBody()
+        </div>
+       
+
+        <!-- END MAIN -->
+    </div>
+    <footer class="w3-container w3-dark-grey myLittleFooter">
+        <p>&copy; 2024-MadeByJagon</p>
+    </footer>
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+</html>
+
+<!--alert視窗-->
+<div id="fullScreenMsg" class="Hidden" onclick="AlertWinClose()">
+    <div class="WinOverlay" >
+        <a href="javascript:void(0)" class="closebtn" onclick="AlertWinClose()">&times;</a>
+        <div class="WinOverlay-content OverCloseArea" onclick="function stop(even){event.stopPropagation()}" id="overlay-content-text">Loading...</div>
+        <div class="WinOverlay-buttons Hidden">
+            <input type="button" class="confirm-negative w3-right red" style="padding: 5px 15px; margin-left:20px;" value="取消" />
+            <input type="button" class="confirm-affirmative w3-right" style="padding: 5px 15px; " value="確定" />
+        </div>
+    </div>
+</div>
+
+<script src="~/js/FullScreenMsg.js"></script>
+<!--alert視窗 end-->
+
+<script>
+    $(document).ready(function () {
+        startTime();
+    });
+    //$('.OverCloseArea').click(function (event) { event.stopPropagation(); });
+
+    var LogOutCountDown = @(LogoutCountdown);
+    function startTime() {
+        var today = new Date();
+        var hh = today.getHours().toString().padStart(2, "0");
+        var mm = today.getMinutes().toString().padStart(2, "0");
+        var ss = today.getSeconds().toString().padStart(2, "0");
+        $("#ticktime").text(hh + ":" + mm + ":" + ss);
+        LogOutCountDown--;
+        //console.log(LogOutCountDown);
+        if (LogOutCountDown < @(LogoutCountdown) - 2) { $("#TopMenu").show(); } //n秒後出現menu
+        if (LogOutCountDown < 0) { location.href = "/Login/logout"; }
+        var timeoutId = setTimeout(startTime, 1000);
+    }
+    function SensorRunning(){
+        LogOutCountDown = @(LogoutCountdown);
+        $("#TopMenu").hide();
+    }
+</script>
+    

@@ -1,0 +1,106 @@
+﻿@model TpePrmcyWms.Models.DOM.VaxSkdDtl
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+}
+
+<form asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group" style="width:100%">
+            <label asp-for="DrugFid" class="control-label"></label>
+            <input type="hidden" asp-for="DrugFid" class="form-control" />
+            <input asp-for="DrugName" style="width:100%;" readonly/>            
+            <span asp-validation-for="DrugFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="BatchNo" class="control-label"></label>
+            <input asp-for="BatchNo" class="form-control narrow50" />
+            <span asp-validation-for="BatchNo" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="ExpireDate" class="control-label"></label>
+            <input asp-for="ExpireDate" class="form-control narrow50" />
+            <span asp-validation-for="ExpireDate" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="QtyStockUp" class="control-label"></label>
+            <input asp-for="QtyStockUp" class="form-control w3-right-align narrow50" type="number" />
+            <span asp-validation-for="QtyStockUp" class="text-danger"></span>
+        </div>
+        <div class="form-group" id="stockOutGroup">
+            <label asp-for="QtyStockOut" class="control-label"></label>
+            <div>
+                <input asp-for="QtyStockOut" class="form-control w3-right-align narrow50" type="number" readonly />
+                <input type="button" id="btn_StockOut" onclick="DtlStockOut(DtlModel)" value="出庫" class="btn btn-primary" style="width:110px;" />
+            </div>
+            <span asp-validation-for="QtyStockOut" class="text-danger"></span>
+        </div>
+        <div class="form-group notInVXO">
+            <label asp-for="QtyVax" class="control-label"></label>
+            <input asp-for="QtyVax" class="form-control w3-right-align narrow50" type="number" />
+            <span asp-validation-for="QtyVax" class="text-danger"></span>
+        </div>
+        <div class="form-group notInVXO">
+            <label asp-for="QtyReturn" class="control-label"></label>
+            <input asp-for="QtyReturn" class="form-control w3-right-align narrow50" type="number" />
+            <span asp-validation-for="QtyReturn" class="text-danger"></span>
+        </div>
+        <div class="form-group notInVXO" >
+            <label asp-for="QtyReceive" class="control-label"></label>
+            <input asp-for="QtyReceive" class="form-control w3-right-align narrow50" type="number" />
+            <span asp-validation-for="QtyReceive" class="text-danger"></span>
+        </div>
+        <div class="form-group notInVXO" id="stockInGroup">
+            <label asp-for="QtyStockIn" class="control-label"></label>
+            <div>
+                <input asp-for="QtyStockIn" class="form-control w3-right-align narrow50" type="number" readonly />
+                <input type="button" id="btn_StockIn" onclick="DtlStockIn(DtlModel)" value="入庫" class="btn btn-primary" style="width:110px;" />
+            </div>
+            <span asp-validation-for="QtyStockIn" class="text-danger"></span>
+        </div>
+        
+
+        <input type="button" id="btn_submit" onclick="goSubmit()" value="確認" class="btn btn-primary w3-right widder1" />
+    </div>
+
+</form>
+
+
+    
+
+
+
+<script>
+    var DtlModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+    //送出鈕
+    function goSubmit() {
+        $("#btn_submit").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));        
+        //console.log(JSON.stringify(EditModel))
+        SubmitFormModel("@Url.Action("VaxSkdDtlSave","FrontApi")", EditModel,
+            function () {
+                AlertWinClose();
+                $(".Full_List.Master .ListCard.selected").click();
+            },
+            function () {
+                $("#btn_submit").show();
+            });
+    }
+    $(document).ready(function () {
+        $("input[list]").dblclick(function () {
+            $(this).val('');
+        });
+
+        if (BillModel.BillType == "VXO") {
+            $(".notInVXO").hide();
+        }
+        if (BillModel.BillType == "VXR") {
+            $("#btn_StockOut").hide();
+        }
+
+    });
+</script>
+

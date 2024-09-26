@@ -1,0 +1,194 @@
+﻿@using TpePrmcyWms.Models.Service;
+@model TpePrmcyWms.Models.Unit.Front.StockBill_Prscpt;
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Unit.Front;
+@{
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { $"drugfullqueryoffsetincabinet:{ViewBag.AtCbntFid}" });
+    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "ToFloor" });
+}
+
+<script src="~/js/CbntSensorCommunicator.js"></script>
+
+
+<div class="MainFrame">
+    <div class="InputArea">
+        <div class="form-group">
+            <label asp-for="ToFloor" class="control-label"></label>
+            <select name="ToFloor" id="ToFloor" class="form-control w3-right-align"
+                    asp-items="@(DropParamList.Where(x=>x.Group=="ToFloor")
+                    .Select(s => new SelectListItem { Value = s.Value, Text = s.Text }))">
+                <option value="">選擇-樓層</option>
+            </select>
+        </div>
+        <div class="form-group ">
+            <label asp-for="DrugName" class="control-label"></label>
+            <input asp-for="DrugName" list="DrugNameList" />
+            <datalist id="DrugNameList">
+                @foreach (var item in DropValueList.Where(x => x.Group == "drugfullqueryoffsetincabinet").ToList())
+                {
+                    <option value="@(item.Value)">@(item.Text)</option>
+                }
+            </datalist>
+        </div>
+        <div class="form-group ">
+            <label asp-for="TargetQty" class="control-label"></label>
+            <input asp-for="TargetQty" class="form-control w3-right-align" type="number" />
+        </div>
+        <div class="form-group">
+            <label asp-for="BatchNo" class="control-label"></label>
+            <input asp-for="BatchNo" class="form-control w3-right-align" />
+        </div>
+        <div class="form-group">
+            <label asp-for="ExpireDate" class="control-label"></label>
+            <input asp-for="ExpireDate" class="form-control w3-right-align" type="date" />
+        </div>
+        <div class="form-group btnbox">
+            <input type="button" class="" onclick="AddingTask('manu')" value="手動輸入" />
+        </div>
+
+    </div>
+    
+
+    <div class="TaskArea" id="TaskArea"> </div>
+
+</div>
+
+
+
+<script>
+    var BillModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+    //#region 感應器回傳的介面更新
+    //只能用Cmutr,因固定寫在js
+    var Cmutr = new CbntSensorCommunicator();
+    Cmutr.UpdateCallBack = function (re) {
+        //console.log(JSON.stringify(re))
+        //確認是否存在,不在就先刪了
+        if (!$("#task_" + re.drugCode).length) {
+            HideTask(re.drugCode);
+        }
+
+        //磅秤更新
+        if (re.ssrQty && re.ssrState != "2" && re.oprState != "2") {
+            $("#takeqty_" + re.drugCode).val(re.ssrQty);
+            $("#takeqty_" + re.drugCode).addClass("greenScanning");
+            setTimeout(function () { $("#takeqty_" + re.drugCode).stop(true, false).removeClass("greenScanning"); }, 600);
+        }
+        //門狀態更新
+        switch (re.ssrState) {
+            case "1":
+                if(re.oprState=="D"){
+                    $("#" + drugCode + "_step1").hide();
+                    $("#" + drugCode + "_step2").hide();
+                    $("#" + drugCode + "_step3").hide();
+                    $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>等待關門中...</p>").show();
+                }
+                break;   
+        }
+        if (re.ssrState != "0" && re.oprState != "0") {
+            $("#takeqty_" + re.drugCode + "_done").show();
+        }
+        //LED
+        if (re.ledColor != "") {
+            $("#task_" + re.drugCode + " .OperDrugInStoreArea").addClass("TaskColor_" + re.ledColor);
+            $("#" + re.drugCode + "_OpenLedColor").css("background-color", re.ledColor).css("color", "white");
+        }
+        //已開門
+        if (re.ssrState == "1" && re.oprState == "0") {
+            SetState(re.drugCode, "1");
+            $("#" + re.drugCode + "_step0").hide(1000);
+            
+            //不須輸入數量,直接下一步
+            //$("#" + re.drugCode + "_step2").show();
+            $("#takeqty_" + re.drugCode + "_done").click();
+        }
+    }
+    Cmutr.DeleteCallBack = function (drugCode) {
+        console.log(drugCode)
+        $("#" + drugCode + "_step1").hide();
+        $("#" + drugCode + "_step2").hide();
+        $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>工作已完成，２秒後自動關閉！</p>").show();
+        setTimeout(function () {
+            $("#task_" + drugCode).remove();
+            location.reload();
+        }, 2000);
+    }
+    Cmutr.AddQuReact = function (re) {
+        if ($("#" + re.DrugCode + "_step1").length == 0) { return; }
+        if (re.returnresult) { $("#" + re.DrugCode + "_step0").hide(); $("#" + re.DrugCode + "_step1").show(); }
+        else { $("#" + re.DrugCode + "_step0").html("<p style='color:red;font-size:24px;'>新增失敗</p>"); }
+    }
+    //#endregion
+
+    Cmutr.Running();    
+
+    $(document).ready(function () {
+        $("input[list]").dblclick(function () {
+            $(this).val('');
+        });
+    });
+
+    //#region 新增StockBill並加入排程
+    function AddingTask(calltype) {
+        $("#GetDrawers").hide();
+        let qDrugCode = "";        
+        if (calltype == "manu") { //手動輸入
+            let qToFloor = $("#ToFloor").val()
+            let qDrugName = $("#DrugName").val()
+            let qTargetQty = $("#TargetQty").val()
+            let qBatchNo = $("#BatchNo").val()
+            let qExpireDate = $("#ExpireDate").val()
+            
+            let err = (qToFloor == "" || qDrugName == "" || qDrugName.split('，').length < 2 || qTargetQty == "0" || qTargetQty == "" || (qBatchNo == "" ^ qExpireDate == ""));
+            if (qToFloor == "") { blinking("#ToFloor"); }
+            if (qDrugName == "") { blinking("#DrugName"); }
+            if (qDrugName != "" && qDrugName.split('，').length < 2) { blinking("#DrugName"); AlertWin("請選擇正確的藥品名稱"); }
+            if (qTargetQty == "0" || qTargetQty == "") { blinking("#TargetQty"); }
+            if (qBatchNo == "" ^ qExpireDate == "") { 
+                if (qBatchNo == "") { blinking("#BatchNo"); }
+                else { blinking("#ExpireDate"); }
+            }
+            if (err) { $("#GetDrawers").show(); return false; }
+
+            qDrugCode = qDrugName.split('，')[0];
+            BillModel.ToFloor = qToFloor;
+            BillModel.DrugCode = qDrugCode;
+            BillModel.DrugName = qDrugName.split('，')[1];
+            BillModel.TargetQty = qTargetQty;
+            BillModel.BatchNo = qBatchNo;
+            BillModel.ExpireDate = qExpireDate;
+           
+        }
+        //console.log(JSON.stringify(BillModel))
+
+        //Load資訊並呈現排程
+        if (Cmutr.QuHadDrug.length == 0){            
+            $("#TaskArea").prepend("<div class=\'taskbox\' id=\'task_" + qDrugCode + "\'>Loading..." + qDrugCode + "</div>");
+        }
+           
+        $("#task_" + qDrugCode).load("@Url.Action("DrawerTask_Offset","FrontLoad")"
+            , { vobj: BillModel }
+            , function () { Cmutr.AddQu(qDrugCode, "@(Model.BillType)"); }
+        )
+        
+    }
+    //#endregion
+
+    //#region 子介面呼叫 客製    
+    function SaveStoreBillAndDone(obj) {
+        //console.log("upQu=" + JSON.stringify(obj))
+        let goPost = new AjaxJsonPostor("@Url.Action("StockBillOffsetSave","FrontApi")", obj);
+        goPost.SuccessCallback = function (result) {
+            if (result.code == 0) {
+                let upQu = { "DrugCode": obj.DrugCode, "DrawFid": obj.DrawFid, "oprState": "2", "stockBillFid": result.returnData }
+                //console.log("upQu=" + JSON.stringify(upQu))
+                Cmutr.SetState(upQu);
+            }
+            else { AlertWin(result.returnData); }
+        }
+        goPost.Post();
+    }
+
+    //#endregion
+
+
+</script>

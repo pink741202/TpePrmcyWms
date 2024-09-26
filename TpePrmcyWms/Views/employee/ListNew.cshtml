@@ -1,0 +1,44 @@
+﻿@model TpePrmcyWms.Models.DOM.employee
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;    
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.name)</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="emp_no" class="control-label"></label>
+            <input asp-for="emp_no" class="form-control" />
+            <span asp-validation-for="emp_no" class="text-danger"></span>
+        </div>
+
+
+	</div>
+    <div class="ListCtrlPanel">
+		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+		{
+            <input type="button" onclick="goQueryApi()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+
+
+<script>
+    
+
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    
+    
+    $(document).ready(function () {
+    })
+    
+</script>

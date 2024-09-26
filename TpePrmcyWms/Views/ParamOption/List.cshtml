@@ -1,0 +1,143 @@
+﻿@model PaginatedList<TpePrmcyWms.Models.DOM.ParamOption>
+@using TpePrmcyWms.Models.Unit.Back
+@using TpePrmcyWms.Models.Service
+@{
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "employee" });
+}
+
+
+<div class="ListPage_QueryArea">
+    <div class="ListPage_QueryPanel">
+        <form asp-action="List" method="post">
+            <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
+            <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
+            <div class="form-actions no-color">
+                群組代碼/名稱 / 參數代碼/名稱 ：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" /> |
+                
+                <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
+                <a asp-action="List">清除</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="ListPage_ListPanel">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=GroupCode')">
+                            @Html.DisplayNameFor(model => model[0].GroupCode)
+                        </div>
+                    </th>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=GroupName')">
+                            @Html.DisplayNameFor(model => model[0].GroupName)
+                        </div>
+                    </th>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=OptionCode')">
+                            @Html.DisplayNameFor(model => model[0].OptionCode)
+                        </div>
+                    </th>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=OptionName')">
+                            @Html.DisplayNameFor(model => model[0].OptionName)
+                        </div>
+                    </th>  
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].Sorting)
+                    </th>
+                    <th class="NotImportant Wd100">
+                        @Html.DisplayNameFor(model => model[0].modid)
+                    </th>
+                    <th class="NotImportant Wd100">
+                        @Html.DisplayNameFor(model => model[0].moddate)
+                    </th>
+                    <th class="Wd100">
+                        @if (ViewBag.OperateAuths["Creatable"])
+                        {
+                            <span class="CtrlBtn btn_goAdd" onclick="EditRecord(0)">𝒩𝑒𝓌</span>
+                        }
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.GroupCode)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.GroupName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.OptionCode)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.OptionName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Sorting)
+                        </td>
+
+                        <td class="NotImportant Wd100">
+                            @((item.modid ?? 0) == 0 ? "" :
+                                DropValueList.Where(w => w.Group == "employee" && w.Value == item.modid.ToString()).FirstOrDefault()?.Text ?? "")
+                        </td>
+                        <td class="NotImportant Wd100">
+                                @Html.DisplayFor(modelItem => item.moddate)
+                        </td>
+                        <td class="Wd100">
+                            <div style="min-width:79px;width:100%;align-items:inherit;">
+                                <span class="CtrlBtn btn_goEdit" onclick="EditRecord(@item.FID)">✎</span>
+                                    @if (ViewBag.OperateAuths["Deletable"])
+                                    {
+                                    <span class="CtrlBtn btn_goDelete" onclick="confirmWin('是否確定刪除?', (confirmed)=>{ if (confirmed) { DeleteRecord(@item.FID); }; }) ">✘</span>
+                                    }
+                            </div>
+                            
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>        
+    </div>
+
+    <div class="ListPage_PagesPanel">
+        @Html.Raw(Model.PageTagHtml)
+    </div>
+</div>
+
+<div class="ListPage_EditArea Hidden">
+    
+</div>
+
+
+
+<script>
+    //排序鈕特效
+    sortingAddClass("@(ViewData["sortOrder"])");
+
+    //編輯鈕
+    function EditRecord(fid){
+        $(".ListPage_EditArea").load("@Url.Action("ListEdit")?fid=" + fid, function () {
+            $(".ListPage_QueryArea").hide();
+            $(".ListPage_EditArea").show();
+        })
+    }
+
+    //刪檔鈕
+    function DeleteRecord(qfid){        
+        //let PostData = { __RequestVerificationToken: GetToken(), fid:5 }
+        let DeletePost = new AjaxJsonPostor("@Url.Action("ListDelete")", qfid);
+        DeletePost.SuccessCallback = function (result) {
+            AlertWin(result.message);
+            if (result.code == 0) { $("#btn_submit").click(); }
+        }
+        DeletePost.ErrorCallback = function (){
+            AlertWin("送出失敗");
+        }
+        DeletePost.Post();
+    }
+</script>

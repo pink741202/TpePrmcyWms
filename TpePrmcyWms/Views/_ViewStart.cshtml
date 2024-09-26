@@ -1,0 +1,13 @@
+﻿@using TpePrmcyWms.Models.Unit.Back
+@{
+    string System = ViewBag.OperateSystem;
+    switch (System)
+    {
+        case "FRONTEND":
+            Layout = "~/Views/Shared/_LayoutFront.cshtml";
+            break;
+        default: //BACKEND
+            Layout = "~/Views/Shared/_LayoutBack.cshtml";
+            break;
+    }
+}

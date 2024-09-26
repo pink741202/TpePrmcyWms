@@ -1,0 +1,70 @@
+﻿@model TpePrmcyWms.Models.DOM.Department
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "company" });
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.dpttitle)</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="dptid" class="control-label"></label>
+            <input asp-for="dptid" class="form-control" />
+            <span asp-validation-for="dptid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="dpttitle" class="control-label"></label>
+            <input asp-for="dpttitle" class="form-control" />
+            <span asp-validation-for="dpttitle" class="text-danger"></span>
+        </div> 
+        <div class="form-group">
+            <label asp-for="comFid" class="control-label"></label>
+            <select name="comFid" id="comFid" class="form-control" disabled
+                    asp-items="@(DropValueList.Where(x=>x.Group=="company")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.comFid.ToString() }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="comFid" class="text-danger"></span>
+        </div>        
+        <div class="form-group">
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+        
+    </div>
+    <div class="ListCtrlPanel">
+		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+		{
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+</script>

@@ -1,0 +1,539 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+.Hidden {
+    display: none;
+}
+
+.FrontBody {
+    position: relative;
+    min-height: 100%;
+    height: 100vh;
+    top: 0px;
+}
+
+span.CtrlBtn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+}
+span.CtrlBtn#btn_add {    
+    width: 70px;
+    height: 26px;
+}
+
+    span.CtrlBtn:hover {
+        color: red;
+    }
+
+
+/* share 裡的主頁 */
+#MainViewSpace {
+    border: 0px solid red;
+    padding: 3px;
+}
+    #MainViewSpace .ViewTitle {
+        position: relative;
+        left: 10px;
+    }
+
+    #MainViewSpace .RenderBody {
+        position: absolute;
+        top: 118px;
+        bottom: 0px;
+        left: 0px;
+        right: 0px;
+    }
+
+
+
+/* top */
+.toptext.w3-right {
+    line-height: 40px;
+    margin-right: 20px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.MenuTopTab {
+    font-size: 1.5em;
+    line-height: 46px;
+    padding: 2px 6px;
+}
+
+    .MenuTopTab.Selected {
+        box-shadow: 0 0 8px 3px white;
+    }
+
+
+
+/* 共用CSS */
+.InputAlertFocus {
+    border: 2px solid red;
+}
+
+.ScanActiveBtn {
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    width: 100px;
+    height: 100px;
+    background-color: white;
+    border: 0px solid red;
+    border-radius: 12px;
+    box-shadow: 0 7px 0 -1px #A00;
+    margin-bottom: 2px;
+    background-image: url("/Images/SystemUse/ScannerIcon.png");
+    background-size: contain;
+    margin: 2px 5px 8px 5px;
+}
+    .ScanActiveBtn:hover {
+        background-color: lightgrey;
+    }
+    .ScanActiveBtn:active {
+        box-shadow: 0 3.5px 0 -1px #666;
+        transform: translateY(4px);
+    }
+.scantext {
+    background-color: #999;
+    color: white;
+    width: 285px;
+    margin: 5px 4px;
+}
+    .scantext:focus {
+        box-shadow: 0 0 5px 4px OrangeRed;
+    }
+
+    input[type=button] {
+        text-decoration: none;
+        outline: none;
+        color: #fff;
+        padding: 0.2em 0.3em;
+        background-color: darkgreen;
+        border: 0px solid red;
+        border-radius: 12px;
+        box-shadow: 0 5px #999;
+        margin: 3px;
+
+    }
+        input[type=button].bigger1 {
+            padding: 0.4em 0.5em;
+            font-size: 1.2em;
+        }
+        input[type=button].widder1 {
+            padding: 0.3em 0.6em;
+            font-size: 1.2em;
+        }
+        input[type=button].red {
+            background-color: red;
+        }
+
+        input[type=button]:hover {
+            background-color: green;
+        }
+
+        input[type=button].red:hover {
+            background-color: #ff4d4d;
+        }
+
+    input[type=button]:active {
+        box-shadow: 0 2px #666;
+        transform: translateY(2px);
+    }
+
+/*共用 頁面*/
+.MainFrame {
+    border: 0px solid red;
+    position: relative;
+    width: 100%;
+    top: 0px;
+    height: 100%;
+    float: left;
+    padding: 10px;
+}
+    /*共用 左輸入區*/
+    .MainFrame .InputArea {
+        width: 305px;
+        justify-items: center;
+        border: 0px solid red;
+        border-right: 2px solid gray;
+        display: grid;
+        grid-gap: 2px 10px;
+        grid-auto-flow: row;
+        float: left;
+        line-height: 1.4em;
+        font-size: 1.4em;
+        padding-bottom: 10px;
+    }
+        .MainFrame .InputArea.List {
+            display: inline-block;
+            height: calc(100% - 46px);
+            overflow-y: scroll;
+            padding : 5px;
+        }
+            .MainFrame .InputArea.List .ListCard {
+                width: 100%;
+                box-shadow: 0 0 5px 1px lightgreen;
+                margin-bottom: 10px;
+                cursor: pointer;
+                padding: 4px 0px;
+            }
+
+                .MainFrame .InputArea.List .ListCard:hover {
+                    box-shadow: 0 0 5px 2px green;
+                }
+
+        .MainFrame .InputArea::-webkit-scrollbar {
+            width: 0px;
+        }
+
+        .MainFrame .InputArea.col2 {
+            width: 631px;
+        }
+        .MainFrame .InputArea.Full {
+            width: 100%;
+            height: calc(100% - 46px);
+            overflow-y: scroll;
+            grid-template-rows: 46px auto;
+        }
+            .MainFrame .InputArea.Full.hasQuery {                
+                grid-template-rows: 46px auto;
+            }
+            .MainFrame .InputArea.Full.hasQryMstDtl {
+                grid-template-rows: 46px 30% auto;
+            }
+            .MainFrame .InputArea.Full.one {
+                grid-template-rows: auto;
+            }            
+            .MainFrame .InputArea.Full .Full_Query {
+                width: 75%;
+                padding: 5px;
+            }
+
+            .MainFrame .InputArea.Full .Full_List {
+                width: 75%;
+                padding: 5px;
+                height: 100%;
+                overflow-y: scroll;
+                border: 0px solid red;
+            }
+                .MainFrame .InputArea.Full .Full_List::-webkit-scrollbar {
+                    width: 2px;
+                }
+                .MainFrame .InputArea.Full .Full_List::-webkit-scrollbar-thumb {
+                    background: green;
+                    border-radius: 10px;
+                }
+                .MainFrame .InputArea.Full .Full_List .ListCard {
+                    width: 100%;
+                    cursor: pointer;
+                    margin-bottom: 5px;                    
+                    border: 2px solid white;
+                    border-bottom: 2px solid gray;
+                    padding: 4px 0px;
+                }
+                    .MainFrame .InputArea.Full .Full_List .ListCard:hover {
+                        border-radius: 10px;
+                        border: 2px solid green;
+                    }
+                    .MainFrame .InputArea.Full .Full_List .ListCard:not(.unClick):active {
+                        transform: translateY(2px);
+                    }
+                    .MainFrame .InputArea.Full .Full_List .ListCard.selected {
+                        background-color: forestgreen;
+                        border-radius: 10px;
+                        border: 2px solid green;
+                        color: white;
+                    }
+                .MainFrame .InputArea.Full .Full_List.Master {
+                    border: 2px solid darkgreen;
+                    border-radius: 10px;
+                } 
+            .MainFrame .InputArea.Full .Full_List.Detail {
+                border-top: 2px dashed gray;
+                width: 73%;
+                font-size: 0.9em;
+            }     
+
+        .MainFrame .InputArea div {
+            float: left;
+            overflow: hidden;
+        }
+        .MainFrame .InputArea.col2 > table {
+            width: 630px;
+            border: 1px solid gray;
+            border-collapse: collapse;
+        }
+        .MainFrame .InputArea.col2 > td {
+            height: 50px;
+            padding: 2px;
+        }
+        .MainFrame .InputArea label {
+            display: inline-block;
+            background-color: #d7e9d0;
+        }
+
+        .MainFrame .InputArea .form-group {
+            width: 99%;
+            padding-bottom: 5px;
+            margin-top: 1px;
+        }
+
+            .MainFrame .InputArea .form-group label {
+                width: 99%;
+                margin-bottom: 2px; 
+            }
+
+            .MainFrame .InputArea .form-group input {
+                width: 99%;
+            }
+
+            .MainFrame .InputArea .form-group select {
+                width: 99%;
+            }
+            .MainFrame .InputArea .form-group.btnbox {
+                margin-top: 20px;
+            }
+            .MainFrame .InputArea .form-group input[type="checkbox"] {
+                width: 26px;
+                height: 26px;
+            }
+        .MainFrame .InputArea span.CtrlBtn {
+            
+        }
+        .MainFrame .InputArea span.CtrlBtn:hover {
+            font-size: 1.4em;
+        }
+
+    /*共用 右操作區*/
+    .MainFrame .TaskArea {
+        border: 0px solid red;
+        position: relative;
+        left: 1px;
+        height: calc(100% - 46px);
+        width: calc(100% - 306px);
+        overflow-y: scroll;
+        float: left;
+    }
+        .MainFrame .TaskArea.col2 {
+            width: calc(100% - 633px);
+        }
+        .MainFrame .TaskArea.Full {
+            width: 75%;
+            left: auto;
+        }
+
+        .MainFrame .TaskArea::-webkit-scrollbar {
+            width: 2px;
+        }
+
+        .MainFrame .TaskArea::-webkit-scrollbar-thumb {
+            background: green;
+            border-radius: 10px;
+        }
+/*領藥多筆用*/
+.TaskArea .taskbox {
+    min-height: 70px;
+    border-radius: 10px;
+    margin: 5px;
+    width: calc(100% - 10px);
+}
+
+/* 藥格操作畫面 */
+.MainFrame #TaskArea .OperDrugInStoreArea {
+    width: calc(100% - 5px);
+    max-width: 880px;
+    margin: 2px;
+}
+
+    .OperDrugInStoreArea table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .OperDrugInStoreArea th, .OperDrugInStoreArea td {
+        line-height: 28px;
+        padding: 5px 0px;
+        border: 1px solid gray;
+        font-size: 28px;
+    }
+
+    .OperDrugInStoreArea .BtnStorage {
+        border: 1px solid #999;
+        background-color: white;
+        padding: 5px 8px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+        height: 120px;
+        width: 180px;
+        border-radius: 3px;
+        box-shadow: -3px -2px 1px #666;
+        margin: 10px;
+    }
+
+        .OperDrugInStoreArea .BtnStorage:hover {
+            border-color: black;
+            box-shadow: -10px -7px 2px #999;
+            text-shadow: -2px -2px 1px #999;
+        }
+
+        .OperDrugInStoreArea .BtnStorage.NotEnough {
+            border: 1px solid dimgrey;
+            background-color: darkgray;
+            color: white;
+            cursor: not-allowed;
+            box-shadow: -3px -2px 1px #999;
+        }
+
+            .OperDrugInStoreArea .BtnStorage.NotEnough:hover {
+                font-weight: normal;
+                box-shadow: -3px -2px 1px #999;
+            }
+
+        .OperDrugInStoreArea .BtnStorage > p {
+            margin: 10px;
+        }
+
+            .OperDrugInStoreArea .BtnStorage > p.no {
+                line-height: 40px;
+                font-size: 40px;
+                font-weight: bold;
+            }
+
+.OperDrugInStoreArea .stepbox {
+    width: 100%;
+    padding: 0px 2px;
+}
+.OperDrugInStoreArea .stepgrid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: max(200px) minmax(382px, 1fr) max(160px);    
+}
+
+    .OperDrugInStoreArea .stepgrid.div2 {
+        display: grid;
+        grid-template-columns: 1fr max(160px);
+    }
+
+    .OperDrugInStoreArea .stepgrid div {
+        padding: 5px;
+        border: 0px solid red;
+        font-size: 1.2em;
+        line-height: 36px;
+        text-align: center;
+    }
+
+    .OperDrugInStoreArea .stepgrid .stepbox_inner {
+        align-items: self-end;
+        justify-content: center;
+    }
+
+    .OperDrugInStoreArea .stepgrid #BatchNoBox {
+        font-size: 0.8em;
+    }
+    .OperDrugInStoreArea .stepgrid #BatchNoBox input{
+        margin-top: 5px;
+        width: 200px;
+    }
+        
+
+    .LEDLightColor_Blue {
+        background-color: blue;
+    }
+.LEDLightColor_Green {
+    background-color: green;
+}
+.LEDLightColor_Yellow {
+    background-color: yellow;
+}
+.LEDLightColor_Red {
+    background-color: red;
+}
+.LEDLightColor_Orange {
+    background-color: orange;
+}
+.LEDLightColor_OrangeRed {
+    background-color: orangered;
+}
+
+
+.TaskColor_Blue {
+    box-shadow: 0 0 5px 2px blue;
+}
+.TaskColor_Green {
+    box-shadow: 0 0 5px 2px green;
+}
+.TaskColor_Yellow {
+    box-shadow: 0 0 5px 2px yellow;
+}
+.TaskColor_Red {
+    box-shadow: 0 0 5px 2px red;
+}
+.TaskColor_Orange {
+    box-shadow: 0 0 5px 2px orange;
+}
+.TaskColor_OrangeRed {
+    box-shadow: 0 0 5px 2px orangered;
+}
+
+.innerPageBox{
+    align-items: center;
+    text-align: center;
+    font-size: 1.5em;
+    line-height: 40px;
+}
+
+.greenScanning {
+    box-shadow: 0 0 10px 4px lawngreen;
+}
+
+.WinOverlay-content .EditPage {
+    font-size: 0.8em;
+    line-height: 0.82em;
+    width: 90%;
+    margin: 5% ;
+}
+    .WinOverlay-content .EditPage .form-group {
+        margin-bottom: 16px;
+        text-align: left;
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        align-items: center;
+        justify-content: start;        
+        width:100%;
+    }        
+    .WinOverlay-content .EditPage .form-group label{
+        margin-right: 10px;
+    }
+    .WinOverlay-content .EditPage .text-danger {
+        font-size: 0.7em;
+        color: red;
+        grid-column: 1 / span 2;
+        grid-row: 2;
+    }
+    .WinOverlay-content .EditPage .form-group.btns {
+        grid-auto-flow: row dense;
+    }
+    .WinOverlay-content .EditPage .form-group .narrow50 {
+        width: 50%;
+    }

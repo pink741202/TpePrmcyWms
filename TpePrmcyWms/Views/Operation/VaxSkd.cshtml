@@ -1,0 +1,138 @@
+﻿@using TpePrmcyWms.Models.Service;
+@using TpePrmcyWms.Models.DOM;
+@model List<VaxSkd>;
+@using Newtonsoft.Json;
+@{
+    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "VaxTmPrd", "TpeDist" });
+}
+
+<script src="~/js/CbntSensorCommunicator.js"></script>
+
+
+<div class="MainFrame">
+    <div class="InputArea Full hasQryMstDtl">       
+        <div class="Full_Query">
+            <label for="KeyQuery" class="control-label"></label>
+            <input id="KeyQuery" class="form-control" style="width:60%;" onkeyup="querylist(this.value)" placeholder="關鍵字查詢" />
+            <span id="recCnts"></span>
+            <span class="CtrlBtn w3-right" id="btn_add" onclick="Editing(0)" title="新增">𝒩𝑒𝓌</span>
+        </div>
+
+        <div class="Full_List Master">
+            @foreach (var item in Model)
+            {
+                <div class="ListCard" key="@(item.FID)" keyword="@(item.VaxSkdTitle)">
+                    <table style="width:100%;">
+                        <tr>
+                            <td align="right" width="30px">
+                                <span class="CtrlBtn" onclick="Deleting(@(item.FID))" title="刪除">✘</span>
+                            </td>
+                            <td align="left" width="160px">
+                                @(item.VaxDate.ToString("yy-MM-dd"))
+                                @(DropParamList.Where(x => x.Group == "VaxTmPrd" && x.Value == item.VaxTimePeriod).FirstOrDefault()?.Text ?? "")
+                            </td>
+                            <td align="left" width="90px">
+                                @(DropParamList.Where(x => x.Group == "TpeDist" && x.Value == item.VaxDist).FirstOrDefault()?.Text ?? "")
+                            </td>
+                            <td align="left">@(item.VaxSkdTitle)</td>                            
+                            <td align="right" width="30px">
+                                <span class="CtrlBtn" onclick="Editing(@(item.FID))" title="修改">✎</span>
+                            </td>
+                            <td align="right" width="30px" class="td_adddtl Hidden">
+                                <span class="CtrlBtn" onclick="DtlEditing(0)" title="新增明細">✚</span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            }
+        </div>
+        <div class="Full_List Detail">
+            
+        </div>
+
+    </div>
+
+    
+
+</div>
+
+
+
+<script>
+    var AllDatas ;
+    var BillModel ;    
+        
+    $(document).ready(function () {
+        $(".Full_List.Master .ListCard").click(function () {
+            $(".selected").removeClass("selected");
+            $(".td_adddtl").hide();
+            $(this).find(".td_adddtl").show();
+            $(this).addClass("selected");
+
+            let key = $(this).attr("key");
+            $(".Full_List.Detail").load("@Url.Action("VaxSkdDtl","FrontLoad")"
+                , { fid: key }
+                , function () { }
+            )
+        })
+    });
+
+    function querylist(qry){
+        let showcnt = 0;
+        $(".ListCard").each(function () { 
+            if ($(this).attr("keyword").toString().toUpperCase().indexOf(qry.toUpperCase()) < 0) { $(this).hide(); }
+            else { $(this).show(); showcnt++; }
+        });
+        $("#recCnts").text(showcnt + "筆");
+    }
+
+    //#region 
+    function Editing(key){
+        $("#overlay-content-text").load("@Url.Action("VaxSkdGet","FrontLoad")"
+            , { fid: key }
+            , function () { OpenAlertWin(); }
+        )
+    }
+    function DtlEditing(key) {
+        $("#overlay-content-text").load("@Url.Action("VaxSkdDtlGet","FrontLoad")"
+            , { fid: key, VaxSkdFid: $(".Full_List.Master .ListCard.selected").attr("key") }
+            , function () { OpenAlertWin(); }
+        )
+    }
+    function Deleting(key) {
+        confirmWin("確定刪除？", (confirmed) => {
+            if (confirmed) {
+                let goPost = new AjaxJsonPostor("@Url.Action("VaxSkdDelete","FrontApi")", key);
+                goPost.SuccessCallback = function (result) {
+                    if (result.code == 0) {
+                        location.reload();
+                    }
+                    else { AlertWin(result.returnData); }
+                }
+                goPost.Post();
+            };
+        })
+    }
+    function DtlDeleting(key) {
+        confirmWin("確定刪除？", (confirmed) => {
+            if (confirmed) {
+                let goPost = new AjaxJsonPostor("@Url.Action("VaxSkdDtlDelete","FrontApi")", key);
+                goPost.SuccessCallback = function (result) {
+                    if (result.code == 0) {
+                        $(".Full_List.Master .ListCard.selected").click();
+                    }
+                    else { AlertWin(result.returnData); }
+                }
+                goPost.Post();
+            };
+        })        
+    }
+
+    //#endregion
+
+    //#region 子介面呼叫 客製
+    
+    //#endregion
+
+
+</script>

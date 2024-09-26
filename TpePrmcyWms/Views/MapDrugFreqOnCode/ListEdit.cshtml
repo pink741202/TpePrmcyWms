@@ -1,0 +1,89 @@
+﻿@model TpePrmcyWms.Models.DOM.MapDrugFreqOnCode
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.HsptlFreqCode) @(Model.FreqName)</h4>
+<form asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="HsptlFreqCode" class="control-label"></label>
+            <input asp-for="HsptlFreqCode" class="form-control" />
+            <span asp-validation-for="HsptlFreqCode" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="FreqEnName" class="control-label"></label>
+            <input asp-for="FreqEnName" class="form-control" />
+            <span asp-validation-for="FreqEnName" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="FreqName" class="control-label"></label>
+            <input asp-for="FreqName" class="form-control" />
+            <span asp-validation-for="FreqName" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="FreqDaily" class="control-label"></label>
+            <input asp-for="FreqDaily" class="form-control" />
+            <span asp-validation-for="FreqDaily" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="FreqTime" class="control-label"></label>
+            <input asp-for="FreqTime" class="form-control" />
+            <span asp-validation-for="FreqTime" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="FreqTimePoint" class="control-label"></label>
+            <input asp-for="FreqTimePoint" class="form-control" />
+            <span asp-validation-for="FreqTimePoint" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="FreqTimeDesc" class="control-label"></label>
+            <input asp-for="FreqTimeDesc" class="form-control" />
+            <span asp-validation-for="FreqTimeDesc" class="text-danger"></span>
+        </div>
+        
+        <div class="form-group">
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+
+    </div>
+    <div class="ListCtrlPanel">
+        @if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+        {
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+        }
+    </div>
+</form>
+
+    
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+</script>
+

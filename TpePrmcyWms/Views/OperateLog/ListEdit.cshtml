@@ -1,0 +1,60 @@
+﻿@model TpePrmcyWms.Models.DOM.OperateLog
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "menuleftlink", "employee" });
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>操作者：@(LblMapValues["empFid"])</h4>
+<form asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="empFid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["empFid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="LinkMethod" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vFindValue(DropValueList, "menuleftlink", Model.LinkMethod.Replace(",List","").Replace("(POST)","").Replace("(GET)","")))" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="LogMsg" class="control-label"></label>
+            <textarea class="form-control" readonly>@(Model.LogMsg)</textarea>
+        </div>
+        <div class="form-group">
+            <label asp-for="ErrorMsg" class="control-label"></label>
+            <textarea class="form-control" readonly>@(Model.ErrorMsg)</textarea>
+        </div>
+        <div class="form-group Span2Col">
+            <label asp-for="ErrorTrace" class="control-label"></label>
+            <textarea class="form-control" readonly>@(Model.ErrorTrace)</textarea>
+        </div>
+        <div class="form-group">
+            <label asp-for="LogTime" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.LogTime, "yyyy-MM-dd HH:mm:ss"))" readonly />
+        </div>
+        <div class="form-group"></div>
+    </div>
+</form>
+
+    
+
+
+
+<script>
+    $(document).ready(function () {
+        $('.datepicker').datepicker({
+            todayHighlight: true,
+            dateFormat: 'yymmdd'
+        });
+    });
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+</script>
+

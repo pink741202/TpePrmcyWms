@@ -1,0 +1,132 @@
+﻿@model List<TpePrmcyWms.Models.DOM.DrugLimitedTo>
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@using TpePrmcyWms.Models.DOM
+@{
+    Layout = null;
+    DrugInfo drug = ViewBag.drug;
+    int cnter = 0;
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(drug.DrugName)</h4>
+<form asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="@(drug.FID)" />
+
+        @{
+            //DrugLimitedTo item = Model.Where(x => x.TargetPatient == "Pool").First();
+        }
+        @foreach (DrugLimitedTo item in Model.Where(x => x.TargetPatient == "Pool"))
+        {
+            <div class="form-group ">
+                <label class="control-label head">臨採總量</label>
+                <div style="display:flex;align-items: center;" class="innerdiv" id="@(item.FID)">
+                    <label asp-for="@(item.Qty)" class="control-label"></label>
+                    <input asp-for="@(item.Qty)" class="form-control w3-right-align" type="number" value="@(Math.Round(item.Qty??0,0))" max="9999" style="width:120px;" />
+                    <input asp-for="@(item.TargetPatient)" type="hidden"/>
+                </div>
+                <span asp-validation-for="@(item.Qty)" class="text-danger"></span>
+            </div>
+        }
+        
+
+        @foreach (DrugLimitedTo item in Model.Where(x => x.TargetPatient != "Pool"))
+        {
+            cnter++;
+            string lastclass = cnter == Model.Count - 1 ? "LastGroup" : "";
+            <div class="form-group @(lastclass)">
+                <label class="control-label head">名單@(cnter)</label>
+                <div style="display:flex;align-items: center;" class="innerdiv" id="@(item.FID)">
+                    <label asp-for="@(item.TargetPatient)" class="control-label"></label>
+                    <input asp-for="@(item.TargetPatient)" class="form-control" style="width:120px;" onkeyup="this.value=InputOnlyNumber(this.value)" />
+                    
+                </div>
+                <span asp-validation-for="@(item.TargetPatient)" class="text-danger" ></span>
+            </div>
+        }
+        
+        <div class="form-group btnplace">
+            <input type="button" onclick="CopyNewGroup()" value="✚" class="CtrlBtn" />
+        </div>
+
+	</div>
+    <div class="ListCtrlPanel">
+        @if (ViewBag.OperateAuths["Updatable"] || ViewBag.OperateAuths["Creatable"])
+		{
+            <input type="button" onclick="SaveAdHocProcPost()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+    
+
+
+
+<script>
+    //送出鈕
+    function SaveAdHocProcPost() {
+        $(".EditPage .CtrlBtn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        EditModel = EditModel.filter(e => e.FID != 0);
+        let error = false;
+        
+        $("div.innerdiv").each(function () {
+            let id = $(this).attr("id");
+            let TargetPatient = $(this).find("input#item_TargetPatient").val();
+            let Qty = $(this).find("input#item_Qty").val();
+            if (TargetPatient == "" && id == 0) { return; }
+            //console.log(id + " " + TargetPatient + " " + Qty)
+            if (TargetPatient != "" && !TargetPatient.match(PatientNoReg) && TargetPatient != "Pool") { AlertWin("病歷號[" + TargetPatient + "]格式錯誤!"); error = true; return false; }
+            if (id != "0") { 
+                let rec = EditModel.find(x => x.FID == id)
+                rec.TargetPatient = TargetPatient; 
+                rec.Qty = Qty; 
+            }
+            else { EditModel.push({ "FID": id, "TargetPatient": TargetPatient, "Qty": Qty, "DrugFid": @(drug.FID) }); }
+            
+        })
+        
+        if (error) { $(".EditPage .CtrlBtn").show(); return false; }
+        let data = { fid: @(drug.FID), list: EditModel }
+        //console.log(JSON.stringify(data));
+        let goPost = new AjaxJsonPostor("@Url.Action("SubEditAdHocProc")", EditModel);
+        goPost.SuccessCallback = function (result) {
+            if (result.code == 0) {
+                AlertWin(result.returnData);
+                CancelEdit();
+            }
+            else { AlertWin(result.returnData); $(".EditPage .CtrlBtn").show(); }
+        }
+        goPost.Post();
+    }
+    
+
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    
+    $(document).ready(function () {
+        $("input[list]").dblclick(function () {
+            $(this).val('');
+        });
+        
+    });
+    
+    //複製新的form
+    function CopyNewGroup(){
+        $(".form-group.LastGroup").clone().removeClass("LastGroup").addClass("iamnew").appendTo(".EditPage")
+            .find('.control-label.head').text('名單' + ($(".form-group").length - 2));
+        $(".iamnew").find("div.innerdiv").attr("id","0");
+        $(".iamnew").find("div.innerdiv > input#item_TargetPatient").val("");
+        $(".iamnew").find("div.innerdiv > input#item_Qty").val("0");
+        $(".iamnew").removeClass("iamnew");
+
+        let list = $(".form-group");
+        let newNode = $(".form-group").get(list.length-2);
+        list.insertBefore(newNode, list.last);
+    }
+</script>
+

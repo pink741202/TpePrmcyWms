@@ -1,0 +1,88 @@
+﻿@model TpePrmcyWms.Models.DOM.Company
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.comtitle)</h4>
+<form asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="comid" class="control-label"></label>
+            <input asp-for="comid" class="form-control" />
+            <span asp-validation-for="comid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="comtitle" class="control-label"></label>
+            <input asp-for="comtitle" class="form-control" />
+            <span asp-validation-for="comtitle" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="comsttitle" class="control-label"></label>
+            <input asp-for="comsttitle" class="form-control" />
+            <span asp-validation-for="comsttitle" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="comhttp" class="control-label"></label>
+            <input asp-for="comhttp" class="form-control" />
+            <span asp-validation-for="comhttp" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="comtel" class="control-label"></label>
+            <input asp-for="comtel" class="form-control" />
+            <span asp-validation-for="comtel" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="comfax" class="control-label"></label>
+            <input asp-for="comfax" class="form-control" />
+            <span asp-validation-for="comfax" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="cnote" class="control-label"></label>
+            <textarea asp-for="cnote" class="form-control"></textarea>
+            <span asp-validation-for="cnote" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="logopic" class="control-label"></label>
+            <input asp-for="logopic" type="file" class="form-control" />            
+            <span asp-validation-for="logopic" class="text-danger"></span>
+            @if (Model.logopic != "" && Model.logopic != null)
+            {
+                <img src="/UploadFiles/CompLogo/@(Model.logopic)" height="100" />
+            }
+        </div>
+
+    </div>
+    <div class="ListCtrlPanel">
+        @if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+        {
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+        }
+    </div>
+</form>
+
+    
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+</script>
+

@@ -1,0 +1,207 @@
+﻿@model PaginatedList<TpePrmcyWms.Models.DOM.employee>
+@using TpePrmcyWms.Models.Unit.Back
+@using TpePrmcyWms.Models.Service
+@{
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "department", "employee", "authrole" });
+}
+
+<div class="ListPage_QueryArea">
+    <div class="ListPage_QueryPanel">
+        <form asp-action="List" method="post">
+            <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
+            <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
+            <div class="form-actions no-color">
+                姓名 / 帳號 / 英文名：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" /> |
+                <select name="qRoleFid"
+                        asp-items="@(DropValueList.Where(x=>x.Group=="authrole")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text = s.Text, Selected=s.Value==ViewBag.qRoleFid.ToString() }))">
+                    <option>查詢-權限角色</option>
+                </select>
+                <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
+                <a asp-action="List">清除</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="ListPage_ListPanel">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=name')">
+                            @Html.DisplayNameFor(model => model[0].name)
+                        </div>
+                    </th>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=empacc')">
+                            @Html.DisplayNameFor(model => model[0].empacc)
+                        </div>
+                    </th>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=enname')">
+                            @Html.DisplayNameFor(model => model[0].enname)
+                        </div>
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].ifuse)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].dptFid)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].RoleFid)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].pagesize)
+                    </th>
+                    <th class="NotImportant Wd100">
+                        @Html.DisplayNameFor(model => model[0].modid)
+                    </th>
+                    <th class="NotImportant Wd100">
+                        @Html.DisplayNameFor(model => model[0].moddate)
+                    </th>
+                    <th class="NotImportant Wd100">
+                        藥櫃權限設定
+                    </th>
+                    <th class="Wd100">
+                        @if (ViewBag.OperateAuths["Creatable"])
+                        {
+                            <span class="CtrlBtn btn_goAdd" onclick="EditRecord(0)">𝒩𝑒𝓌</span>
+                        }
+                    </th>
+                    
+                    
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.empacc)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.enname)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ifuse)
+                        </td>
+                        <td>
+                            @((item.dptFid ?? 0) == 0 ? "" :
+                                DropValueList.Where(w => w.Group == "department" && w.Value == item.dptFid.ToString()).FirstOrDefault()?.Text ?? "")
+                        </td>
+                        <td>
+                            @((item.RoleFid ?? 0) == 0 ? "" :
+                                DropValueList.Where(w => w.Group == "authrole" && w.Value == item.RoleFid.ToString()).FirstOrDefault()?.Text ?? "")
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.pagesize)
+                        </td>
+                        <td class="NotImportant Wd100">
+                            @((item.modid ?? 0) == 0 ? "" :
+                                DropValueList.Where(w => w.Group == "employee" && w.Value == item.modid.ToString()).FirstOrDefault()?.Text ?? "")
+                        </td>
+                        <td class="NotImportant Wd100">
+                            @Html.DisplayFor(modelItem => item.moddate)
+                        </td>
+                        <td class="Wd100">
+                            <span class="CtrlBtn " onclick="EditUserCbntFnAuth(@item.FID)">✔</span>
+                        </td>
+                        <td class="Wd100">
+                            <div style="min-width:79px;width:100%;align-items:inherit;">
+                                <span class="CtrlBtn btn_goEdit" onclick="EditRecord(@item.FID)">✎</span>
+                                    @if (ViewBag.OperateAuths["Deletable"])
+                                    {
+                                    <span class="CtrlBtn btn_goDelete" onclick="confirmWin('是否確定刪除?', (confirmed)=>{ if (confirmed) { DeleteRecord(@item.FID); }; }) ">✘</span>
+                                    }
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                }
+            </tbody>
+        </table>        
+    </div>
+
+    <div class="ListPage_PagesPanel">
+        @Html.Raw(Model.PageTagHtml)
+    </div>
+</div>
+
+<div class="ListPage_EditArea Hidden">
+    
+</div>
+
+
+
+<script>
+    //排序鈕特效
+    sortingAddClass("@(ViewData["sortOrder"])");
+
+    //編輯鈕
+    function EditRecord(fid){
+        if(fid==0){
+            $(".ListPage_EditArea").load("@Url.Action("ListNew")", function () {
+                $(".ListPage_QueryArea").hide();
+                $(".ListPage_EditArea").show();
+            })
+        }
+        else{
+            $(".ListPage_EditArea").load("@Url.Action("ListEdit")?fid=" + fid, function () {
+                $(".ListPage_QueryArea").hide();
+                $(".ListPage_EditArea").show();
+            })
+        }
+        
+    }
+
+    //刪檔鈕
+    function DeleteRecord(qfid){        
+        //let PostData = { __RequestVerificationToken: GetToken(), fid:5 }
+        let DeletePost = new AjaxJsonPostor("@Url.Action("ListDelete")", qfid);
+        DeletePost.SuccessCallback = function (result) {
+            AlertWin(result.message);
+            if (result.code == 0) { $("#btn_submit").click(); }
+        }
+        DeletePost.ErrorCallback = function (){
+            AlertWin("送出失敗");
+        }
+        DeletePost.Post();
+    }
+
+    //同步醫院資料庫
+    function goQueryApi() {
+        let qstring = $("#emp_no").val();
+        if (qstring == "") { AlertWin("請輸入員工編號"); return false; }
+        $(".EditPage .btn").hide();
+        let Poster = new AjaxJsonPostor("@Url.Action("ListSyncHsptlApi")", qstring);
+        Poster.SuccessCallback = function (result) {
+            //console.log(JSON.stringify(result))
+            if (result.code == "0") {
+                AlertWin(result.message);
+                CancelEdit();
+                EditRecord(result.returnData);
+            }
+            else{
+                AlertWin(result.message);
+            }
+        }
+        Poster.ErrorCallback = function () {
+            AlertWin("送出失敗");
+            $(".EditPage .btn").show();
+        }
+        Poster.Post();
+    }
+
+    //權限設定鈕
+    function EditUserCbntFnAuth(fid) {
+        $(".ListPage_EditArea").load("@Url.Action("ListUserCbntFnAuthEdit")?fid=" + fid, function () {
+            $(".ListPage_QueryArea").hide();
+            $(".ListPage_EditArea").show();
+        })
+    }
+</script>

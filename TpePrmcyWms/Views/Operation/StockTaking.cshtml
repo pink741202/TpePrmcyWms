@@ -1,0 +1,294 @@
+﻿@using TpePrmcyWms.Models.Service;
+@model TpePrmcyWms.Models.DOM.StockBill;
+@using TpePrmcyWms.Models.DOM;
+@using Newtonsoft.Json;
+@{
+    List<Drawers> drawers = ViewBag.drawers;
+    List<DrugGrid> grids = ViewBag.grids;
+    List<int> stockTakedList = ViewBag.stockTakedList;
+}
+
+<script src="~/js/CbntSensorCommunicator.js"></script>
+
+<style>
+    .MainFrame .InputArea div {
+        overflow: visible;
+    }
+
+    .CabinetDisplay {
+        width: 98%;
+        justify-items: center;
+        line-height: 1.4em;
+        font-size: 1.4em;
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        grid-gap: 10px;
+        grid-auto-flow: row;
+    }
+
+        .CabinetDisplay .btnDrawer {
+            width: 99%;
+            height: 99%;
+            margin: 2px;
+            padding: 0px;
+            border: 2px solid darkgreen;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: white;
+            color: black;
+            font-weight: bold;
+        }
+
+            .CabinetDisplay .btnDrawer p {
+                font-size: 14px;
+                line-height: 18px;
+            }
+
+                .CabinetDisplay .btnDrawer p.takedsytle {
+                    color: lightgray;
+                    font-size: 12px;
+                }
+
+            .CabinetDisplay .btnDrawer:not(.notClick):hover {
+                transform: translateY(-1px);
+            }
+
+            .CabinetDisplay .btnDrawer:not(.notClick):active {
+                transform: translateY(2px);
+            }
+
+            .CabinetDisplay .btnDrawer.state_Opening {
+                background-color: yellow;
+                color: dimgray;
+            }
+
+            .CabinetDisplay .btnDrawer.state_Done {
+                background-color: dimgray;
+                color: white;
+            }
+
+            .CabinetDisplay .btnDrawer.notClick {
+                color: lightgray;
+                border-color: lightgray;
+                cursor: not-allowed;
+            }
+
+    .MainFrame .DetailDisplayBox {
+        position: absolute;
+        top: 1px;
+        left: 10%;
+        border: 1px solid darkgray;
+        flex-wrap: wrap;
+        background-color: blanchedalmond;
+        padding: 2px 10px;
+        z-index: 9;
+        font-size: 1.6em;
+        text-align: left;
+        line-height: 0.8em;
+    }
+</style>
+
+<div class="MainFrame">
+    <div class="InputArea Full hasQuery">
+        <div class="Full_Query">
+            <label for="KeyQuery" class="control-label"></label>
+            <input id="KeyQuery" class="form-control" style="width:60%;" onkeyup="querylist(this.value)" placeholder="關鍵字查詢" />
+        </div>
+
+        <div class="CabinetDisplay">
+            @foreach (var item in drawers)
+            {
+                var thisgrid = grids.Where(x => x.DrawFid == item.FID);
+                string notClick = thisgrid.Count() == 0 ? "notClick" : "";
+
+                string stockedstyle = thisgrid.Select(x => x.FID).Intersect(stockTakedList).Count() == thisgrid.Select(x => x.FID).Count() && thisgrid.Count() > 0 ? "notClick state_Done" : "";
+                <div class="btnDrawer @(notClick) @(stockedstyle)" id="@(item.FID)">
+                    @(item.No)
+                    @foreach (var det in thisgrid)
+                    {
+                        string takedsytle = stockTakedList.Contains(det.FID) ? "takedsytle" : "";
+                        <p detid="@(det.FID)" class="@(takedsytle)">@Html.Raw($"⏺︎[{det.DrugCode}] {det.DrugName}")</p>
+                    }
+                </div>
+                
+                <div class="Hidden" id="detail@(item.FID)">
+                    @*@foreach (var det in thisgrid)
+                    {
+                        <p detid="@(det.FID)">@Html.Raw($"⏺︎[{det.DrugCode}] {det.DrugName}")</p>
+                    }*@
+                </div>
+
+            }
+        </div>
+        <div class="TaskArea Full Hidden" id="TaskArea"> </div>
+    </div>
+
+    
+    <div class="DetailDisplayBox Hidden"></div>
+</div>
+
+
+
+<script>
+    var Grids = @Html.Raw(JsonConvert.SerializeObject(grids));
+    var Taked = @Html.Raw(JsonConvert.SerializeObject(stockTakedList));
+    var BillModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+    //#region 感應器回傳的介面更新
+    //只能用Cmutr,因固定寫在js
+    var Cmutr = new CbntSensorCommunicator();
+    Cmutr.UpdateCallBack = function (re) {
+        //console.log(JSON.stringify(re))
+        //確認是否存在,不在就先刪了
+        if (!$("#task_" + re.drugCode).length) {
+            HideTask(re.drugCode);
+        }
+
+        //磅秤更新
+        if (re.ssrQty && re.ssrState != "2" && re.oprState != "2") {
+            $("#takeqty_" + re.drugCode).val(re.ssrQty);
+            $("#takeqty_" + re.drugCode).addClass("greenScanning");
+            setTimeout(function () { $("#takeqty_" + re.drugCode).stop(true, false).removeClass("greenScanning"); }, 600);
+        }
+        //門狀態更新
+        switch (re.ssrState) {
+            case "1":
+                if(re.oprState=="D"){
+                    $("#" + drugCode + "_step1").hide();
+                    $("#" + drugCode + "_step2").hide();
+                    $("#" + drugCode + "_step3").hide();
+                    $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>等待關門中...</p>").show();
+                }
+                break;   
+        }
+        if (re.ssrState != "0" && re.oprState != "0") {
+            $("#takeqty_" + re.drugCode + "_done").show();
+        }
+        //LED
+        if (re.ledColor != "") {
+            $("#task_" + re.drugCode + " .OperDrugInStoreArea").addClass("TaskColor_" + re.ledColor);
+            $("#" + re.drugCode + "_OpenLedColor").css("background-color", re.ledColor).css("color", "white");
+        }
+        //已開門
+        if (re.ssrState == "1" && re.oprState == "0") {
+            SetState(re.drugCode, "1");
+            $("#" + re.drugCode + "_step0").hide();
+            
+            //不須輸入數量,直接下一步
+            $("#takeqty_" + re.drugCode + "_done").click();
+        }
+    }
+    Cmutr.DeleteCallBack = function (drugCode) {
+        $("#" + drugCode + "_step1").hide();
+        $("#" + drugCode + "_step2").hide();
+        $("#" + drugCode + "_step3").hide();
+        $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>操作結束中，２秒後自動關閉！</p>").show();
+        setTimeout(function () {
+            $("#task_" + drugCode).remove();
+            if (Cmutr.QuHadDrug.length == 0) { location.reload(); }
+        }, 2000);
+    }
+    Cmutr.AddQuReact = function (re) {
+        if ($("#" + re.DrugCode + "_step1").length == 0) { return; }
+        if (re.returnresult) { $("#" + re.DrugCode + "_step0").hide(); $("#" + re.DrugCode + "_step1").show(); }
+        else { $("#" + re.DrugCode + "_step0").html("<p style='color:red;font-size:24px;'>新增失敗</p>"); }
+    }
+    //#endregion
+
+    Cmutr.Running();    
+
+    
+    $(document).ready(function () {
+        //顯示櫃中藥品項
+        $(".btnDrawer").hover(
+            function () {
+                //let pos = $(this).position();
+                //let id = $(this).attr("id");
+                //$(".DetailDisplayBox").html($("#detail" + id).html());
+                //if ($(this).hasClass("state_Done")){
+                //    $(".DetailDisplayBox").append("<p style='color:red'>今日已盤點過！</p>")
+                //}
+                //$(".DetailDisplayBox").css({ top: pos.top + $(this).height() + 18, left: pos.left + 2 }).show();
+            },
+            function () {
+                //$(".DetailDisplayBox").text("").hide();
+            }
+        )
+
+        $(".btnDrawer:not(.notClick)").click(function () {
+            $(".Full_Query").hide();
+            $(".CabinetDisplay").hide();
+            let id = $(this).attr("id");
+            let slctGrid = Grids.filter(function (el) {
+                return el.DrawFid == id;
+            });
+            let OpeningDrawer = $(".state_Opening");
+            if (OpeningDrawer.length != 0) { 
+                AlertWin("已有操作中的藥格！"); 
+                $(".Full_Query").show();
+                $(".CabinetDisplay").show();
+                return; 
+            }
+            slctGrid.forEach(function (e) {
+                if (!Taked.find(x=>x==e.FID)) {
+                    setTimeout(function () { AddingTask(e.DrugCode, e.DrugName, e.DrawFid); }, 250);
+                }
+            })
+            $(".btnDrawer#" + id).addClass("state_Opening");
+        })
+    });
+
+    
+
+    //#region 新增StockBill並加入排程
+    function AddingTask(qDrugCode, qDrugName, qDrawFid) {
+        
+        //console.log("adding " + qDrugCode + " " + qDrawFid);
+        BillModel.DrugCode = qDrugCode;
+        BillModel.DrugName = qDrugName;
+        BillModel.DrawFid = qDrawFid;
+        //console.log(JSON.stringify(BillModel))
+
+        //Load資訊並呈現排程
+        if (Cmutr.QuHadDrug.length == 0){
+            $("#TaskArea").show();
+            $("#TaskArea").prepend("<div class=\'taskbox\' id=\'task_" + qDrugCode + "\'>Loading..." + qDrugCode + "</div>");
+        }
+           
+        $("#task_" + qDrugCode).load("@Url.Action("DrawerTask_StockTaking","FrontLoad")"
+            , { vobj: BillModel }
+            , function () { 
+                Cmutr.AddQu(qDrugCode, BillModel.BillType); 
+            }
+        )
+        
+    }
+    //#endregion
+
+    //#region 子介面呼叫 客製    
+    function SaveStoreBillAndDone(obj) {
+        let goPost = new AjaxJsonPostor("@Url.Action("StockTakingSave","FrontApi")", obj);
+        goPost.SuccessCallback = function (result) {
+            if (result.code == 0) {
+                //console.log("return result=" + JSON.stringify(result))
+                let upQu = { "DrugCode": obj.DrugCode, "DrawFid": obj.DrawFid, "oprState": "2", "stockBillFid": result.returnData }
+                //console.log("save upQu=" + JSON.stringify(upQu))
+                Cmutr.SetState(upQu);
+            }
+            else { AlertWin(result.returnData); }
+        }
+        goPost.Post();
+    }
+    
+    //#endregion
+
+    //#region 本頁面 查詢filter
+    function querylist(qry) {
+        $(".btnDrawer p").each(function () {
+            if ($(this).text().toString().toUpperCase().indexOf(qry.toUpperCase()) < 0) { $(this).hide(); }
+            else { $(this).show(); }
+        });
+        
+    }
+        //#endregion
+
+</script>

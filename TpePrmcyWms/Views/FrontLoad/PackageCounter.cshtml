@@ -1,0 +1,39 @@
+﻿@model List<TpePrmcyWms.Models.DOM.DrugPackage>;
+@{
+    Layout = null;
+    string DrugCode = ViewBag.DrugCode;
+}
+
+@if (Model.Count > 0)
+{
+    <div class="innerPageBox">
+        @foreach (var item in Model)
+        {
+            <p id="@(item.FID)" class="PackagesRow">                
+                每 @Html.Raw(item.UnitTitle) <span id="unit">@(Math.Round(item.UnitQty, 0))</span>單位
+                有<input type="text" id="inp" value="" size="3" class="w3-right-align" onkeyup="this.value=InputOnlyNumber(this.value)" maxlength="5" />
+                @Html.Raw(item.UnitTitle)
+            </p>
+        }
+        <p>
+            共 <span id="ttl">0</span>
+            <input type="button" class="w3-right" value="確認" onclick="AlertWinClose();" /> 單位
+        </p>
+    </div>
+    
+}
+
+<script>
+    $(document).ready(function () {
+        $("input#inp").on("keyup", function () {
+            let ttl = 0;
+            $(".PackagesRow").each(function(i,e){
+                let inp = $(this).find("#inp").val() != "" ? parseInt($(this).find("#inp").val()) : 0;
+                let unit = parseInt($(this).find("#unit").text());
+                ttl+=inp*unit;
+            })
+            $("#ttl").text(ttl);
+            $('#stocktake_@(DrugCode)').val(ttl);
+        });
+    })
+</script>

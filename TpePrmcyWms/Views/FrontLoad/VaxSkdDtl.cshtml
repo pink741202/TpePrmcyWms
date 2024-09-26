@@ -1,0 +1,33 @@
+﻿@using TpePrmcyWms.Models.Service;
+@using TpePrmcyWms.Models.DOM;
+@model List<VaxSkdDtl>;
+@using Newtonsoft.Json;
+@{
+    Layout = null;    
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { $"drugfullqueryisvax" });
+}
+
+@foreach (var item in Model)
+{
+    string drugstring = DropValueList.Where(x => x.Group == "drugfullqueryisvax" && x.Value.Split("，")[2] == item.DrugFid.ToString()).FirstOrDefault()?.Value ?? "";
+    string[] drugarr = drugstring.Split("，");
+    if (drugarr.Length != 3) { continue; }
+
+    <div class="ListCard unClick" keyword="">
+        <table style="width:100%;">
+            <tr>
+                <td align="right" width="30px">
+                    <span class="CtrlBtn" onclick="DtlDeleting(@(item.FID))" title="刪除">✘</span>
+                </td>
+                <td align="left" width="120px" onclick="DtlEditing(@(item.FID))">@(drugarr[0])</td>
+                <td align="left" onclick="DtlEditing(@(item.FID))">@(drugarr[1])</td>
+                <td align="right" width="30px">
+                    <span class="CtrlBtn" onclick="DtlEditing(@(item.FID))" title="修改">✎</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+}
+
+
+

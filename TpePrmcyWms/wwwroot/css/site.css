@@ -1,0 +1,76 @@
+
+
+
+
+/*跳出視窗 AlertWin*/
+.WinOverlay {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    position: fixed;
+    z-index: 10;
+    top: 0;
+    left: 0;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0, 0.9);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.WinOverlay-content {
+    padding: 10px;
+    position: relative;
+    width: 80%;
+    text-align: center;
+    background: white;
+    border: 0px solid red;
+    line-height: 1.5em;
+    overflow-y: scroll;
+    max-height: 80%;
+    font-size: 2.5em;
+}
+
+.WinOverlay-buttons {
+    width: 80%;
+    text-align: center;
+    border: 0px solid red;
+    font-size: 1.2em;
+}
+
+
+.WinOverlay a {
+    padding: 8px;
+    text-decoration: none;
+    font-size: 40px;
+    color: #818181;
+    display: block;
+    transition: 0.3s;
+    z-index: 11;
+}
+
+    .WinOverlay a:hover, .WinOverlay a:focus {
+        color: #f1f1f1;
+    }
+
+.WinOverlay .closebtn {
+    position: absolute;
+    top: 0px;
+    right: 25px;
+    font-size: 60px;
+}
+
+
+
+@media screen and (max-height: 450px) {
+    .WinOverlay a {
+        font-size: 20px
+    }
+
+    .WinOverlay .closebtn {
+        font-size: 40px;
+        top: 15px;
+        right: 35px;
+    }
+}
+/*跳出視窗 AlertWin ......end*/

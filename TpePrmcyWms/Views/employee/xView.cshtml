@@ -1,0 +1,96 @@
+﻿@model TpePrmcyWms.Models.DOM.employee
+
+@{
+    ViewData["Title"] = "View";
+}
+
+<h1>View</h1>
+
+<h4>employee</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="View">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="FID" />
+            <div class="form-group">
+                <label asp-for="name" class="control-label"></label>
+                <input asp-for="name" class="form-control" />
+                <span asp-validation-for="name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="opensesame" class="control-label"></label>
+                <input asp-for="opensesame" class="form-control" />
+                <span asp-validation-for="opensesame" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="empacc" class="control-label"></label>
+                <input asp-for="empacc" class="form-control" />
+                <span asp-validation-for="empacc" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="enname" class="control-label"></label>
+                <input asp-for="enname" class="form-control" />
+                <span asp-validation-for="enname" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="ifuse" /> @Html.DisplayNameFor(model => model.ifuse)
+                </label>
+            </div>
+            <div class="form-group">
+                <label asp-for="emptype" class="control-label"></label>
+                <input asp-for="emptype" class="form-control" />
+                <span asp-validation-for="emptype" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="empstatus" class="control-label"></label>
+                <input asp-for="empstatus" class="form-control" />
+                <span asp-validation-for="empstatus" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="comFid" class="control-label"></label>
+                <input asp-for="comFid" class="form-control" />
+                <span asp-validation-for="comFid" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="dptFid" class="control-label"></label>
+                <input asp-for="dptFid" class="form-control" />
+                <span asp-validation-for="dptFid" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="RoleFid" class="control-label"></label>
+                <input asp-for="RoleFid" class="form-control" />
+                <span asp-validation-for="RoleFid" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="SyncAsRole" /> @Html.DisplayNameFor(model => model.SyncAsRole)
+                </label>
+            </div>
+            <div class="form-group">
+                <label asp-for="pagesize" class="control-label"></label>
+                <input asp-for="pagesize" class="form-control" />
+                <span asp-validation-for="pagesize" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="modid" class="control-label"></label>
+                <input asp-for="modid" class="form-control" />
+                <span asp-validation-for="modid" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="moddate" class="control-label"></label>
+                <input asp-for="moddate" class="form-control" />
+                <span asp-validation-for="moddate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="CtrlBtn" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+

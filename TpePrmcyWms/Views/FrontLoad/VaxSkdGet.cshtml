@@ -1,0 +1,85 @@
+﻿@model TpePrmcyWms.Models.DOM.VaxSkd
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "VaxTmPrd", "TpeDist", "InOutHsptl" });
+}
+<form asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="VaxSkdTitle" class="control-label"></label>
+            <input asp-for="VaxSkdTitle" class="form-control" />
+            <span asp-validation-for="VaxSkdTitle" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="VaxDate" class="control-label"></label>
+            <input asp-for="VaxDate" class="form-control narrow50" />
+            <span asp-validation-for="VaxDate" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="VaxTimePeriod" class="control-label"></label>
+            <select name="VaxTimePeriod" id="VaxTimePeriod" class="form-control narrow50"
+                    asp-items="@(DropParamList.Where(x=>x.Group=="VaxTmPrd")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.VaxTimePeriod }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="VaxTimePeriod" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="InOutHsptl" class="control-label"></label>            
+            <select name="InOutHsptl" id="InOutHsptl" class="form-control narrow50"
+                    asp-items="@(DropParamList.Where(x=>x.Group=="InOutHsptl")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.InOutHsptl }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="InOutHsptl" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="VaxDist" class="control-label"></label>
+            <select name="VaxDist" id="VaxDist" class="form-control narrow50"
+                    asp-items="@(DropParamList.Where(x=>x.Group=="TpeDist")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.VaxDist }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="VaxDist" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="VaxTarget" class="control-label"></label>
+            <input asp-for="VaxTarget" class="form-control" />
+            <span asp-validation-for="VaxTarget" class="text-danger"></span>
+        </div>
+
+
+        <input type="button" id="btn_submit" onclick="goSubmit()" value="確認" class="btn btn-primary w3-right widder1" />
+    </div>
+
+</form>
+
+
+    
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $("#btn_submit").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));        
+        //console.log(JSON.stringify(EditModel))
+        SubmitFormModel("@Url.Action("VaxSkdSave","FrontApi")", EditModel,
+            function () {
+                AlertWinClose();
+                location.reload();
+            },
+            function () {
+                $("#btn_submit").show();
+            });
+    }
+    $(document).ready(function () {
+        
+    });
+</script>
+

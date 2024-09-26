@@ -1,0 +1,146 @@
+﻿@using TpePrmcyWms.Models.Unit.Back
+@{
+    LoginInfo Loginfo = ViewBag.Loginfo;
+    MenuTree thisTree = Loginfo.Trees.Where(x => x.L2fid == Loginfo.Linkinfo.MenuLFid).First();
+    //左側目錄,條件: 當下的menutop+要呈現的
+    List<MenuTree> leftTree = Loginfo.Trees.Where(x => x.MtFid == thisTree.MtFid && x.L2Display).ToList();
+    MenuTree frontTree = Loginfo.Trees.Where(x => x.System == "FRONTEND").FirstOrDefault();
+    ViewData["Title"] = thisTree.L2Name;
+
+}
+
+<!DOCTYPE html>
+<html lang="ch">
+<head>
+    <meta charset="UTF-8" />
+    <title>@ViewData["Title"] - 藥品管理系統</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/w3.css" />
+    <link rel="stylesheet" href="~/css/w3-custom.css" />
+    <link rel="stylesheet" href="~/css/Back.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <script src="~/js/jquery_3_7_1.min.js"></script>
+    <script src="~/js/site.js"></script>
+</head>
+
+<body class="ListBody" >
+    <div class="w3-container top" style="padding-top: 20px;">
+        <a class="w3schools-logo notranslate" style="position: absolute;" asp-area="" asp-controller="employee" asp-action="person">
+            藥品管理<span class="dotcom">系統</span>
+        </a>
+
+        <div class="w3-right w3-wide toptext">
+            <span id="ticktime"></span>
+        </div>
+        <div class="w3-right w3-wide toptext">
+            @(Loginfo.User.Name)
+        </div>
+    </div>
+
+    <!--top menu-->
+    <div class="TopMenuStyle w3-bar w3-theme w3-card-2 w3-wide">
+        @for (int m = 0; m < Loginfo.Trees.Count; m++)
+        {
+            if ((m == 0 || Loginfo.Trees[m].MtFid != Loginfo.Trees[m - 1].MtFid) && Loginfo.Trees[m].System == "BACKEND")
+            {
+                string[] ctrlact = Loginfo.Trees[m].L2Link.Split(',');
+                string selected = thisTree.MtFid == Loginfo.Trees[m].MtFid ? "Selected" : "";
+                <a class="w3-bar-item w3-button barex w3-hover-white "
+                   asp-controller="@(ctrlact[0])" asp-action="@(ctrlact[1])"
+                   id="navbtn_tutorials">
+                    <div class="MenuTopTab @(selected)">
+                        @(Loginfo.Trees[m].MtName)
+                    </div>
+                </a>
+            }
+        }
+        <div class="w3-right">
+            @if (frontTree != null)
+            {
+                <a class="w3-bar-item w3-button w3-hover-white w3-padding-16 w3-right" href="@Url.Action("Index",frontTree.L2Link.Split(',')[0])" title="前台"><i class="fa">前台</i></a>
+            }
+            <a class="w3-bar-item w3-button w3-hover-white w3-padding-16 w3-right" href="@Url.Action("logout","Login")" title="登出"><i class="fa">登出</i></a>
+        </div>
+    </div>
+
+    <!--left menu-->
+    <nav class="w3-sidebar w3-collapse w3-card-2" id="mySidenav">
+        <div class="w3-bar-block">
+            @for (int m = 0; m < leftTree.Count; m++)
+            {
+                if (m == 0 || leftTree[m].L1fid != leftTree[m - 1].L1fid)
+                {
+                    string selected = thisTree.L1fid == leftTree[m].L1fid ? "Selected" : "";
+                    <div class="MenuLeftLv1" MenuLv1Ctrl="@(leftTree[m].L1fid)"
+                         onclick="LeftMenuClick(@(leftTree[m].L1fid))">
+                        <div class="LeftMenuLv1Title @(selected)">@(leftTree[m].L1Name)</div>
+                        
+                    </div>
+                }
+                string[] ctrlact = leftTree[m].L2Link.Split(',');
+                string selected2 = thisTree.L2fid == leftTree[m].L2fid ? "Selected" : "";
+                <div class="MenuLeftLv2 " MenuL2Up="@(leftTree[m].L1fid)">
+                    <a class="@(selected2)" asp-controller="@(ctrlact[0])" asp-action="@(ctrlact[1])">
+                        @(leftTree[m].L2Name)
+                    </a>
+                </div>
+            }
+        </div>
+        <footer class="w3-container w3-dark-grey myLittleFooter">
+            <img src="~/Images/SystemUse/JagonLogo.png" width="40px"/> 
+            <div>&copy; 2024-MadeByJagon</div>
+        </footer>
+    </nav>
+    
+
+    <!-- MAIN -->
+    <div class="w3-main" id="MainViewSpace">
+        <h2 class="ViewTitle">@(thisTree.L2Name)</h2>
+        <div class="w3-center RenderBody">
+            @RenderBody()
+        </div>
+
+        <!-- END MAIN -->
+    </div>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+
+<!--alert視窗-->
+<div id="fullScreenMsg" class="Hidden" onclick="AlertWinClose()">
+    <div class="WinOverlay">
+        <a href="javascript:void(0)" class="closebtn" onclick="AlertWinClose()">&times;</a>
+        <div class="WinOverlay-content OverCloseArea" onclick="function stop(even){event.stopPropagation()}" id="overlay-content-text">Loading...</div>
+        <div class="WinOverlay-buttons Hidden">
+            <input type="button" class="confirm-negative w3-right red" style="padding: 5px 15px; margin-left:20px;" value="取消" />
+            <input type="button" class="confirm-affirmative w3-right" style="padding: 5px 15px; " value="確定" />
+        </div>
+    </div>
+</div>
+
+<script src="~/js/FullScreenMsg.js"></script>
+<!--alert視窗 end-->
+
+<script>
+    $(document).ready(function () {
+        startTime();
+        LeftMenuClick(@(thisTree.L1fid));
+    });
+
+    function startTime() {
+        var today = new Date();
+        var hh = today.getHours().toString().padStart(2, "0");
+        var mm = today.getMinutes().toString().padStart(2, "0");
+        var ss = today.getSeconds().toString().padStart(2, "0");
+        $("#ticktime").text(hh + ":" + mm + ":" + ss);
+        var timeoutId = setTimeout(startTime, 1000);
+    }
+
+</script>
+@if (TempData.ContainsKey("AlertMsg"))
+{
+    <script type="text/javascript">
+        AlertWin('@(TempData["AlertMsg"])');
+    </script>
+}

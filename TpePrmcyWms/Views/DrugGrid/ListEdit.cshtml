@@ -1,0 +1,187 @@
+﻿@model TpePrmcyWms.Models.DOM.DrugGrid
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "cabinet", "drawernosub", "drugfullquery" });
+    List<SelectListGroup> CbntGroup = DropValueList.Where(x => x.Group == "cabinet").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(string.IsNullOrEmpty(Model.DrugName) ? "" : $"{Model.CbntName} > {LblMapValues["DrugFid"].Substring(0, 20)}...")</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="CbntFid" class="control-label" ></label>
+            <select name="CbntFid" id="CbntFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="cabinet")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.CbntFid.ToString() }))">
+                <option value="0">▼請選擇</option>
+            </select>            
+            <span asp-validation-for="CbntFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="DrawFid" class="control-label"></label>
+            <select name="DrawFid" id="DrawFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="drawernosub")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.DrawFid.ToString(), Group=CbntGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                <option value="0">▼請選擇</option>
+            </select>
+            <span asp-validation-for="DrawFid" class="text-danger"></span>
+        </div>
+        <div class="form-group Span2Col">
+            <label asp-for="DrugFid" class="control-label"></label>
+            <input type="hidden" asp-for="DrugFid" class="form-control" />
+            <input asp-for="DrugName" list="DrugList" />
+            <datalist id="DrugList" >
+                @foreach (var item in DropValueList.Where(x => x.Group == "drugfullquery").ToList())
+                {
+                    <option value="@(item.Value)">@(item.Text)</option>
+                }
+            </datalist>
+            <span asp-validation-for="DrugFid" class="text-danger"></span>
+        </div> 
+        <div class="form-group">
+            <label asp-for="Qty" class="control-label" ></label>
+            <input asp-for="Qty" class="form-control" type="number" />
+            <span asp-validation-for="Qty" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="MaxLimitQty" class="control-label"></label>
+            <input asp-for="MaxLimitQty" class="form-control" type="number" />
+            <span asp-validation-for="MaxLimitQty" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="SafetyStock" class="control-label"></label>
+            <input asp-for="SafetyStock" class="form-control" type="number" />
+            <span asp-validation-for="SafetyStock" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="Alert" class="control-label"></label>
+            @Html.CheckBox("Alert", Model.Alert??false, new { @class = "form-check-input form-control"})
+            <span asp-validation-for="Alert" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="StockTakeType" class="control-label"></label>
+            <select name="StockTakeType"
+                    asp-items="@(
+                        new List<SelectListItem>(){
+                            new SelectListItem(){ Value = "0", Text = "盲盤", Selected = "0" == Model.StockTakeType },
+                            new SelectListItem(){ Value = "1", Text = "明盤", Selected = "1" == Model.StockTakeType }
+                        })">
+                <option value="">無</option>
+            </select>
+            <span asp-validation-for="StockTakeType" class="text-danger"></span>
+        </div> 
+        <div class="form-group">
+            <label asp-for="BatchActive" class="control-label"></label>
+            @Html.CheckBox("BatchActive", Model.BatchActive??false, new { @class = "form-check-input form-control"})
+            <span asp-validation-for="BatchActive" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="DailyMaxTake" class="control-label"></label>
+            <input asp-for="DailyMaxTake" class="form-control" type="number" />
+            <span asp-validation-for="DailyMaxTake" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="StandingStock" class="control-label"></label>
+            <input asp-for="StandingStock" class="form-control" type="number" />
+            <span asp-validation-for="StandingStock" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="UnitConvert" class="control-label">單位轉換(整瓶cc數)</label>
+            <input asp-for="UnitConvert" class="form-control" type="number" />
+            <span asp-validation-for="UnitConvert" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="OffsetCbntFid" class="control-label"></label>
+            <select name="OffsetCbntFid" id="OffsetCbntFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="cabinet")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.OffsetCbntFid.ToString() }))">
+                <option value="0">▼請選擇</option>
+            </select>
+            <span asp-validation-for="OffsetCbntFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="OffsetDrawFid" class="control-label"></label>
+            <select name="OffsetDrawFid" id="OffsetDrawFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="drawernosub")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.OffsetDrawFid.ToString(), Group=CbntGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                <option value="0">▼請選擇</option>
+            </select>
+            <span asp-validation-for="OffsetDrawFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="ReturnEmptyBottle" class="control-label">需還空瓶(借還藥用)</label>
+            @Html.CheckBox("ReturnEmptyBottle", Model.ReturnEmptyBottle??false, new { @class = "form-check-input form-control"})
+            <span asp-validation-for="ReturnEmptyBottle" class="text-danger"></span>
+        </div>
+        
+
+
+        <div class="form-group">
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+
+        
+    </div>
+    <div class="ListCtrlPanel">
+        @if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+        {
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+        }
+    </div>
+</form>
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    //藥櫃 連動 藥格
+    $("#CbntFid").change(function () {
+        let selectedName = $("#CbntFid option:selected").text();
+        $("#DrawFid optgroup").each(function () {
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });
+        if ($("#DrawFid option:selected").parent().css('display') == "none") { $("#DrawFid").val(""); }
+        $("#DrawFid").change();
+    });
+    $("#OffsetCbntFid").change(function () {
+        let selectedName = $("#OffsetCbntFid option:selected").text();
+        $("#OffsetDrawFid optgroup").each(function () {
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });
+        if ($("#OffsetDrawFid option:selected").parent().css('display') == "none") { $("#OffsetDrawFid").val("0"); }
+        $("#OffsetDrawFid").change();
+    });
+    $(document).ready(function () {
+        $("#CbntFid").change();
+        $("#OffsetCbntFid").change();
+        $("input[list]").dblclick(function () {
+            $(this).val('');
+        });
+    })
+</script>

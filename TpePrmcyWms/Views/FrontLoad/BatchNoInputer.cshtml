@@ -1,0 +1,39 @@
+﻿@model List<TpePrmcyWms.Models.DOM.DrugGridBatchNo>;
+@{
+    Layout = null;
+    int DrugGrudFid = ViewBag.DrugGrudFid;
+}
+
+
+
+@if (Model.Count > 0)
+{
+    <div class="innerPageBox">
+        批號：
+        <select name="BatchNoPicker" id="BatchNoPicker" class="form-control"
+                asp-items="@(Model.Select(s => new SelectListItem { Value = s.BatchNo, Text=s.BatchNo }))">
+            <option value="">▼請選擇</option>
+        </select>
+    </div>    
+}
+@if (DrugGrudFid == -1)
+{
+    <input name="BatchNo" id="BatchNo" class="form-control" placeholder="批號" maxlength="12" />
+    <input name="ExpireDate" id="ExpireDate" class="form-control w3-right-align" type="date" />
+}
+@if (Model.Count == 0 && DrugGrudFid != -1)
+{
+    <div class="innerPageBox">
+        無有庫存的批號
+    </div>
+}
+
+<script>
+    $(document).ready(function () {
+    @if (Model == null)
+    {
+        @:AlertWin("取得批次輸入欄出現錯誤")
+    }
+    
+    })
+</script>

@@ -1,0 +1,103 @@
+﻿@model TpePrmcyWms.Models.DOM.employee
+@using TpePrmcyWms.Models.Service
+@{    
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+}
+
+
+<div class="ListPage_EditArea">
+    
+    <h4>@(Model.name)</h4>
+
+    <form asp-action="person">
+        <div class="EditPage">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="FID" />
+            <div class="form-group">
+                <label asp-for="name" class="control-label"></label>
+                <input asp-for="name" class="form-control" />
+                <span asp-validation-for="name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="empacc" class="control-label"></label>
+                <input asp-for="empacc" class="form-control" />
+                <span asp-validation-for="empacc" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group">
+                <label asp-for="enname" class="control-label"></label>
+                <input asp-for="enname" class="form-control" />
+                <span asp-validation-for="enname" class="text-danger"></span>
+            </div>            
+            <div class="form-group">
+                <label asp-for="pagesize" class="control-label"></label>
+                <input asp-for="pagesize" class="form-control" />
+                <span asp-validation-for="pagesize" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="emp_no" class="control-label"></label>
+                <input asp-for="emp_no" class="form-control" readonly />
+                <span asp-validation-for="emp_no" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CardNo" class="control-label"></label>
+                <input asp-for="CardNo" class="form-control" readonly />
+                <span asp-validation-for="CardNo" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="email" class="control-label"></label>
+                <input asp-for="email" class="form-control" readonly />
+                <span asp-validation-for="email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="RoleFid" class="control-label"></label>
+                <input class="form-control" value="@(LblMapValues["RoleFid"])" readonly/>
+            </div>
+            <div class="form-group">
+                <label asp-for="comFid" class="control-label"></label>
+                <input class="form-control" value="@(LblMapValues["comFid"])" readonly/>
+            </div>
+            <div class="form-group">
+                <label asp-for="dptFid" class="control-label"></label>
+                <input class="form-control" value="@(LblMapValues["dptFid"])" readonly/>
+            </div>
+            <div class="form-group">
+                <label asp-for="ifuse" class="control-label"></label>
+                <input class="form-control" value="@(Model.ifuse ? "是" : "否")" readonly/>
+            </div>
+            <div class="form-group">
+                <label asp-for="modid" class="control-label"></label>
+                <input class="form-control" value=" @(LblMapValues["modid"])" readonly/>
+            </div>
+            <div class="form-group">
+                <label asp-for="moddate" class="control-label"></label>
+                <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly/>
+            </div>
+
+
+
+		</div>
+        <div class="ListCtrlPanel">
+            <input type="submit" value="確認" class="CtrlBtn" />
+		</div>
+
+    </form>
+</div>
+
+
+<script>
+    //密碼用
+    SwitchPasswordType();
+    function SwitchPasswordType() {
+        let obj = document.getElementById("opensesame");
+        let obj_icon = document.getElementById("opensesame_icon");
+        if (obj.type === "password") {
+            obj.type = "text";
+            obj_icon.innerHTML = "🂡";
+        } else {
+            obj.type = "password";
+            obj_icon.innerHTML = "🂠";
+        }
+    }
+</script>

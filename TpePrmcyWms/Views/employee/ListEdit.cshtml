@@ -1,0 +1,165 @@
+﻿@model TpePrmcyWms.Models.DOM.employee
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "company", "department", "employee", "authrole" });
+    List<SelectListGroup> CompGroup = DropValueList.Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.name)</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="name" class="control-label"></label>
+            <input asp-for="name" class="form-control" />
+            <span asp-validation-for="name" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="empacc" class="control-label"></label>
+            <input asp-for="empacc" class="form-control" />
+            <span asp-validation-for="empacc" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="emp_no" class="control-label"></label>
+            <input asp-for="emp_no" class="form-control" readonly/>
+            <span asp-validation-for="emp_no" class="text-danger"></span>
+        </div>
+        @if (ViewBag.edittype == "C")
+        {
+            <div class="form-group">
+                <label asp-for="opensesame" class="control-label"></label>
+                <span style="font-size:16px; cursor: pointer; float:right; margin-right:10%;" id="opensesame_icon" onclick="SwitchPasswordType()">🂠</span>
+                <input asp-for="opensesame" class="form-control" />
+                <span asp-validation-for="opensesame" class="text-danger"></span>
+            </div>
+        }
+        <div class="form-group">
+            <label asp-for="enname" class="control-label"></label>
+            <input asp-for="enname" class="form-control" />
+            <span asp-validation-for="enname" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="CardNo" class="control-label"></label>
+            <input asp-for="CardNo" class="form-control" />
+            <span asp-validation-for="CardNo" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="RoleFid" class="control-label"></label>
+            <select name="RoleFid" id="RoleFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="authrole" && Convert.ToInt32(x.Value) > 1)
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.RoleFid.ToString() }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="RoleFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="email" class="control-label"></label>
+            <input asp-for="email" class="form-control" type="email"/>
+            <span asp-validation-for="email" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="pagesize" class="control-label"></label>
+            <input asp-for="pagesize" class="form-control" />
+            <span asp-validation-for="pagesize" class="text-danger"></span>
+        </div>
+        
+        <div class="form-group">
+            <label asp-for="comFid" class="control-label"></label>
+            <select name="comFid" id="comFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="company")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.comFid.ToString()}))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="comFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="dptFid" class="control-label"></label>
+            <select name="dptFid" id="dptFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="department")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.dptFid.ToString(), Group=CompGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="dptFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="ifuse" class="control-label"></label>
+            <input asp-for="ifuse" class="form-check-input form-control" />
+            <span asp-validation-for="ifuse" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+
+	</div>
+    <div class="ListCtrlPanel">
+		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+		{
+            <input type="button" id="QueryApi" onclick="goQueryApi()" value="同步醫院資料庫" class="CtrlBtn" />
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    //公司連動部門    
+    $("#comFid").change(function () {
+        let selectedName = $("#comFid option:selected").text(); console.log($("#dptFid").val())
+        //$("#dptFid").val("");
+        $("#dptFid optgroup").each(function(){
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });        
+        if ($("#dptFid option:selected").parent().css('display') == "none") { $("#dptFid").val(""); console.log('a')}
+    });
+    
+    $(document).ready(function () {
+        $("#comFid").change();
+    })
+    
+</script>
+
+@if (ViewBag.edittype == "C")
+{
+    //密碼用
+    <script>
+        SwitchPasswordType();
+        function SwitchPasswordType() {
+            let obj = document.getElementById("opensesame");
+            let obj_icon = document.getElementById("opensesame_icon");
+            if (obj.type == "password") {
+                obj.type = "text";
+                obj_icon.innerHTML = "🂡";
+            }
+            else {
+                obj.type = "password";
+                obj_icon.innerHTML = "🂠";
+            }
+        }
+    </script>
+}

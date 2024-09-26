@@ -1,0 +1,239 @@
+﻿@model List<TpePrmcyWms.Models.Unit.Back.MenuTree>
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.DOM
+@using TpePrmcyWms.Models.Unit.Back
+@{
+    Layout = null;
+    List<MapMenuOnCbnt> MnAbleList = (List<MapMenuOnCbnt>)ViewBag.MnAbleList;
+    Cabinet CbntInfo = (Cabinet)ViewBag.CbntInfo;
+}
+<script>
+    $(document).ready(function () {
+
+        //樹狀目錄 展開合起
+        $(".TreeCol_Head:not(.aChild)").click(function () {
+            let selectedid = $(this).attr("id");            
+            if ($(".Lv" + selectedid).is(":visible")) {
+                $(".Lv" + selectedid).hide();
+                $(this).text("▼");
+            }
+            else {
+                $(".Lv" + selectedid).show();
+                $(this).text("▲");
+            }
+        })
+
+        //第二層目錄勾選(直向), 勾選下層全部 分查新修刪
+        $(".TreeRow_Lv1 input:checkbox").click(function () {
+            let selectedid = $(this).attr("id");
+            let ischecked = $(this).is(':checked');
+            $(".TreeRow_Lv2 input:checkbox." + selectedid).prop('checked', ischecked);
+            if (ischecked){
+                let Lv2ID = $(this).attr("id").substring(1);
+                $(".TreeRow_Lv2 input:checkbox.Q" + Lv2ID).prop('checked', ischecked);
+                $(".TreeRow_Lv1 input#Q" + Lv2ID).prop('checked', ischecked);
+            } 
+            
+        })
+
+        //第三層目錄勾選(橫向), 全部 該目錄的查新修刪
+        $(".TreeRow_Lv2 input:checkbox.RowAll").click(function () {
+            let selectedid = $(this).attr("id").substring(1);
+            let ischecked = $(this).is(':checked');            
+            $(".TreeRow_Lv2 input:checkbox#Q" + selectedid).prop('checked', ischecked);
+            $(".TreeRow_Lv2 input:checkbox#C" + selectedid).prop('checked', ischecked);
+            $(".TreeRow_Lv2 input:checkbox#U" + selectedid).prop('checked', ischecked);
+            $(".TreeRow_Lv2 input:checkbox#D" + selectedid).prop('checked', ischecked);
+        })
+
+        //第三層目錄 任一項勾選true, 查的功能一定true
+        $(".TreeRow_Lv2 input:checkbox").click(function () {
+            let selectedid = $(this).attr("id").substring(1);
+            MustCheckedRule(selectedid);
+        })
+
+    });
+    function MustCheckedRule(selectedid) {
+        //任一項CRUD勾選true, R的功能一定true
+        let isOneChecked = $(".TreeRow_Lv2 input:checkbox#Q" + selectedid).is(':checked')
+            || $(".TreeRow_Lv2 input:checkbox#C" + selectedid).is(':checked')
+            || $(".TreeRow_Lv2 input:checkbox#U" + selectedid).is(':checked')
+            || $(".TreeRow_Lv2 input:checkbox#D" + selectedid).is(':checked');
+        $(".TreeRow_Lv2 input:checkbox#Q" + selectedid).prop('checked', isOneChecked);
+
+        //子目錄任一項R勾選true, 主目錄的功能一定true
+        let Lv1Qsid = $(".TreeRow_Lv2 input:checkbox#Q" + selectedid).attr('class').split(' ')[0];
+        let Lv1QChecked = false;
+        $("." + Lv1Qsid).each(function () {
+            if ($(this).is(':checked')) {
+                Lv1QChecked = true;
+                return false;
+            }
+        })
+        $(".TreeRow_Lv1 input:checkbox#" + Lv1Qsid).prop('checked', Lv1QChecked);
+    }
+</script>
+<style>
+    .TreeFrame {
+        display: inline-block;
+        word-wrap: break-word;
+        width: 85%;
+        font-size: 1.2em;
+    }
+
+        .TreeFrame .TreeRow {
+            display: inline-block;
+            border-top: 1px dashed gray;
+            border-bottom: 1px dashed gray;
+            width: 100%;
+            padding: 4px 10px;
+            background-color: #eeeebb;
+            margin-bottom: -5px;
+        }
+
+        .TreeFrame .TreeRow_Lv0 {
+            background-color: #ccccaa;
+            font-weight: bold;
+        }
+
+            .TreeFrame .TreeRow_Lv0 .TreeCol_Head {
+                width: 30px;
+            }
+
+        .TreeFrame .TreeRow_Lv1 {
+            background-color: #ddddab;
+        }
+
+            .TreeFrame .TreeRow_Lv1 .TreeCol_Head {
+                width: 60px;
+            }
+
+        .TreeFrame .TreeCol {
+            display: inline-block;
+            word-wrap: break-word;
+            float: left;
+        }
+
+        .TreeFrame .TreeCol_Head {
+            width: 90px;
+            text-align: right;
+            padding-right: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .TreeFrame .TreeCol_Title {
+            max-width: 60%;
+        }
+
+        .TreeFrame .TreeCol_Opt {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            text-align: right;
+            width: 50%;
+            float: right;
+        }
+            .TreeFrame .TreeCol_Opt input[type=checkbox] {
+                margin-right: 4%;
+                width: 1.5rem;
+                height: 1.5rem;
+            }
+    .TreeTitle {
+        font-size: 30pt;
+        color: #990000;
+        height: 36px;
+    }
+
+    .dontdisplay {
+        display: none;
+    }
+</style>
+
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(CbntInfo.CbntName)</h4>
+<form name="form1" id="form1" asp-action="ListAuthEdit">
+    <div class="ListPage_ListPanel">
+        <input type="hidden" name="fid" id="fid" value="@CbntInfo.FID" />
+
+        <div class="ListRolling">
+            <div class="TreeFrame">
+                @{
+                    int MtFid = 0, L1Fid = 0;
+                }
+                @foreach (MenuTree tree in Model)
+                {
+                    //使用者紀錄
+                    string Q_checkit = (MnAbleList.Find(x => x.MnLFid == tree.L2fid && x.Able) != null) ? "checked" : "";
+                    string cusTitle = MnAbleList.Find(x => x.MnLFid == tree.L2fid)?.MnLTitle ?? "" ;
+                    string SystemName = "前台";
+
+
+
+                    //第一層 上方頁籤
+                    if (MtFid != tree.MtFid)
+                    {
+                        MtFid = tree.MtFid;
+                        <div class="TreeRow TreeRow_Lv0">
+                            <div class="TreeCol TreeCol_Head" id="Mt@(tree.MtFid)">▲</div>
+                            <div class="TreeCol TreeCol_Title"> @(tree.MtName) (@(SystemName))</div>
+                            <div class="TreeCol TreeCol_Opt">
+                            </div>
+                        </div>
+                    }
+
+                    //第二層 左邊目錄
+                    if (L1Fid != tree.L1fid && tree.L1fid != 0)
+                    {
+                        L1Fid = tree.L1fid;
+                        
+                        <div class="TreeRow TreeRow_Lv1 LvMt@(MtFid)">
+                            <div class="TreeCol TreeCol_Head" id="@(tree.L1fid)">▲</div>
+                            <div class="TreeCol TreeCol_Title"> @(tree.L1Name)</div>
+                            <div class="TreeCol TreeCol_Opt">
+                                
+                                
+                            </div>
+                        </div>
+                    }
+
+                    //第三層 左邊目錄 可能到第二層就結束了
+                    if (tree.L2fid != 0)
+                    {
+                        <input type="hidden" name="AllFid" value="@(tree.L2fid)">
+                        <div class="TreeRow TreeRow_Lv2 LvMt@(MtFid) Lv@(L1Fid)">
+                            <div class="TreeCol TreeCol_Head aChild" id="@(tree.L2fid)">＞</div>
+                            <div class="TreeCol TreeCol_Title">@(tree.L2Name)</div>
+                            <div class="TreeCol TreeCol_Opt">
+                                <input type="checkbox" id="Q@(tree.L2fid)" name="Query" value="@(tree.L2fid)" class="Q@(tree.L1fid) RowAll" @Html.Raw(Q_checkit) />
+                                <input type="text" id="" name="custTitle" value="@(cusTitle)" class="" maxlength="10" placeholder="自訂顯示名稱"/>
+                            </div>
+                        </div>
+                    }
+                    
+                }
+
+            </div>
+        </div>
+
+
+    </div>
+</form>
+<div class="ListCtrlPanel">
+    <input type="button" onclick="goSubmit()" value="確認" />
+</div>
+
+<script>
+    //送出鈕
+    function goSubmit() {        
+        SubmitFormModel("@Url.Action("ListEditUsableMenu")", null, function () {
+            CancelEdit();
+            AlertWin("更新完成");
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+</script>

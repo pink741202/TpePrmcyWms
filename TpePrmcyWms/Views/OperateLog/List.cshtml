@@ -1,0 +1,136 @@
+﻿@model PaginatedList<TpePrmcyWms.Models.DOM.OperateLog>
+@using TpePrmcyWms.Models.Unit.Back
+@using TpePrmcyWms.Models.Service
+@{
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "menuleftlink", "employee" });    
+}
+
+<div class="ListPage_QueryArea">
+    <div class="ListPage_QueryPanel">
+        <form asp-action="List" method="post">
+            <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
+            <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
+            <div class="form-actions no-color">                
+                <select name="qKeyString"
+                        asp-items="@(DropValueList.Where(x=>x.Group=="menuleftlink")
+                    .Select(s => new SelectListItem { Value = s.Col, Text = s.Text, Selected=s.Col==ViewData["qKeyString"].ToString() }))">
+                    <option value="">查詢-操作頁面</option>
+                </select>
+
+                <select name="qType"
+                    asp-items="@(
+                        new List<SelectListItem>(){
+                            new SelectListItem(){ Value = "O", Text = "一般操作", Selected = "O" == ViewBag.qType },
+                            new SelectListItem(){ Value = "E", Text = "錯誤訊息", Selected = "E" == ViewBag.qType }
+                        })">
+                    <option value="">查詢-操作頁面</option>
+                </select>
+                &nbsp;
+                
+                訊息時間(起<input type="date" name="qDate1" value="@(ViewData["qDate1"])">
+                ~迄<input type="date" name="qDate2" value="@(ViewData["qDate2"])">)
+
+                <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
+                <a asp-action="List">清除</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="ListPage_ListPanel">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=LogTime')">
+                            @Html.DisplayNameFor(model => model[0].LogTime)
+                        </div>
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].empFid)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].LinkMethod)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].LogMsg)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].ErrorMsg)
+                    </th>
+                    <th class="Wd100">
+                        
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.LogTime)
+                        </td>
+                        <td>
+                            @(item.empFid == 0 ? "" :
+                                DropValueList.Where(w => w.Group == "employee" && w.Value == item.empFid.ToString()).FirstOrDefault()?.Text ?? "")
+                        </td>
+                        <td>
+                            @(ViewFunc.vFindValue(DropValueList, "menuleftlink", item.LinkMethod.Replace(",List", "").Replace("(POST)", "").Replace("(GET)", "")))
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.LogMsg)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ErrorMsg)
+                        </td>
+                        <td class="Wd100">
+                            <div style="min-width:79px;width:100%;align-items:inherit;">
+                                <span class="CtrlBtn btn_goEdit" onclick="EditRecord(@item.FID)">✎</span>
+                                    @if (ViewBag.OperateAuths["Deletable"])
+                                    {
+                                    <span class="CtrlBtn btn_goDelete" onclick="confirmWin('是否確定刪除?', (confirmed)=>{ if (confirmed) { DeleteRecord(@item.FID); }; }) ">✘</span>
+                                    }
+                            </div>
+
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="ListPage_PagesPanel">
+        @Html.Raw(Model.PageTagHtml)
+    </div>
+</div>
+
+<div class="ListPage_EditArea Hidden">
+    
+</div>
+
+
+<script>
+    //排序鈕特效
+    sortingAddClass("@(ViewData["sortOrder"])");
+
+    //編輯鈕
+    function EditRecord(fid) {
+        $(".ListPage_EditArea").load("@Url.Action("ListEdit")?fid=" + fid, function () {
+            $(".ListPage_QueryArea").hide();
+            $(".ListPage_EditArea").show();
+        })
+    }
+
+    //刪檔鈕
+    function DeleteRecord(qfid) {
+        //let PostData = { __RequestVerificationToken: GetToken(), fid:5 }
+        let DeletePost = new AjaxJsonPostor("@Url.Action("ListDelete")", qfid);
+        DeletePost.SuccessCallback = function (result) {
+            AlertWin(result.message);
+            if (result.code == 0) { $("#btn_submit").click(); }
+        }
+        DeletePost.ErrorCallback = function () {
+            AlertWin("送出失敗");
+        }
+        DeletePost.Post();
+    }
+</script>

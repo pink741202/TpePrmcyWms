@@ -1,0 +1,258 @@
+﻿@using TpePrmcyWms.Models.Service;
+@model TpePrmcyWms.Models.Unit.Front.QryDrawersForTrans;
+@using Newtonsoft.Json;
+@{
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { $"drugfullqueryincabinet:{Model.TransGoBill.CbntFid}", "company", "cabinetsub" });
+    List<SelectListGroup> CompGroup = DropValueList.Where(x => x.Group == "company").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+    int CbntComFid = ViewBag.CbntComFid;
+    string companysttitle = DropValueList.Where(x => x.Group == "company" && x.Value == CbntComFid.ToString()).FirstOrDefault()?.Text ?? "";
+}
+
+<script src="~/js/CbntSensorCommunicator.js"></script>
+
+
+<div class="MainFrame">
+    <div class="InputArea col2">
+        <table>
+            <tr>
+                <td width="45%" align="center"><div style="width:100%;background-color:DarkSeaGreen;font-weight:bold;">調出</div></td>
+                <td colspan="2"></td>
+                <td width="45%" align="center"><div style="width:100%;background-color:DarkSeaGreen;">調入</div></td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="form-group">
+                        <label for="goComFid" class="control-label">院區</label>
+                        @(companysttitle)
+                    </div>
+                </td>
+                <td colspan="2" rowspan="2"><img src="/Images/SystemUse/move_goods.png" style="width:90%; max-width:50px;" /></td>
+                <td>
+                    <div class="form-group">
+                        <label for="inComFid" class="control-label">院區</label>
+                        <select name="inComFid" id="inComFid" class="form-control"
+                                asp-items="@(DropValueList.Where(x=>x.Group=="company")
+                                .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==ViewBag.CbntComFid.ToString() }))">
+                        </select>
+                    </div>
+                    
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="form-group">
+                        <label asp-for="TransGoBill.CbntFid" class="control-label"></label>
+                        @(DropValueList.Where(x => x.Group == "cabinetsub" && x.Value == Model.TransGoBill.CbntFid.ToString()).FirstOrDefault()?.Text ?? "")
+                    </div>
+                </td>
+                <td>
+                    <div class="form-group">
+                        <label asp-for="TransInBill.CbntFid" class="control-label">藥櫃(選填)</label>
+                        <select name="inCbntFid" id="inCbntFid" class="form-control"
+                                asp-items="@(DropValueList.Where(x=>x.Group=="cabinetsub")
+                                .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.TransInBill.CbntFid.ToString(), Group=CompGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                            <option value="0">▼請選擇</option>
+                            <option value="-1">本院全櫃</option>
+                        </select>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4"><div style="width:100%;background-color:DarkSeaGreen;">調動品項資訊</div></td>
+            </tr>
+            <tr>
+                <td colspan="2" width="50%">
+                    <div class="form-group">
+                        <label asp-for="TransGoBill.DrugName" class="control-label"></label>
+                        <input asp-for="TransGoBill.DrugName" list="DrugNameList" />
+                        <datalist id="DrugNameList">
+                            @foreach (var item in DropValueList.Where(x => x.Group == "drugfullqueryincabinet").ToList())
+                            {
+                                <option value="@(item.Value)">@(item.Text)</option>
+                            }
+                        </datalist>
+                    </div>
+                </td>
+                <td colspan="2" width="50%">
+                    <div class="form-group">
+                        <label asp-for="TransGoBill.TargetQty" class="control-label"></label>
+                        <input asp-for="TransGoBill.TargetQty" class="form-control w3-right-align" type="number" />
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4" style="align-items:center; height:100px;">
+                    <input type="button" id="GetDrawers" onclick="AddingTask('manu')" class="widder1" value="確定送出" />
+                </td>
+            </tr>
+        </table>
+                
+
+    </div>
+
+    <div class="TaskArea col2" id="TaskArea"> </div>
+
+</div>
+
+
+
+<script>
+    var AllDatas = @Html.Raw(JsonConvert.SerializeObject(Model));
+    var BillModel = AllDatas.TransGoBill; 
+    //#region 感應器回傳的介面更新
+    //只能用Cmutr,因固定寫在js
+    var Cmutr = new CbntSensorCommunicator();
+    Cmutr.UpdateCallBack = function (re) {
+        //console.log(JSON.stringify(re))
+        //確認是否存在,不在就先刪了
+        if (!$("#task_" + re.drugCode).length) {
+            HideTask(re.drugCode);
+        }
+
+        //磅秤更新
+        if (re.ssrQty && re.ssrState != "2" && re.oprState != "2") {
+            $("#takeqty_" + re.drugCode).val(re.ssrQty);
+            $("#takeqty_" + re.drugCode).addClass("greenScanning");
+            setTimeout(function () { $("#takeqty_" + re.drugCode).stop(true, false).removeClass("greenScanning"); }, 600);
+        }
+        //門狀態更新
+        switch (re.ssrState) {
+            case "1":
+                if(re.oprState=="D"){
+                    $("#" + drugCode + "_step1").hide();
+                    $("#" + drugCode + "_step2").hide();
+                    $("#" + drugCode + "_step3").hide();
+                    $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>等待關門中...</p>").show();
+                }
+                break;   
+        }
+        //LED
+        if (re.ledColor != "") {
+            $("#task_" + re.drugCode + " .OperDrugInStoreArea").addClass("TaskColor_" + re.ledColor);
+            $("#" + re.drugCode + "_OpenLedColor").css("background-color", re.ledColor).css("color", "white");
+        }
+        //已開門
+        if (re.ssrState == "1" && re.oprState == "0") {
+            SetState(re.drugCode, "1");
+            $("#" + re.drugCode + "_step0").hide(1000);
+            
+            //不須輸入數量,但要選批號
+            $("#" + re.drugCode + "_step2").show();
+            $("#" + re.drugCode + "_step2 #QtyBox").hide();
+            //$("#takeqty_" + re.drugCode + "_done").click();
+        }
+    }
+    Cmutr.DeleteCallBack = function (drugCode) {
+        $("#" + drugCode + "_step1").hide();
+        $("#" + drugCode + "_step2").hide();
+        $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>工作已完成，２秒後自動關閉！</p>").show();
+        setTimeout(function () {
+            $("#task_" + drugCode).remove();
+            location.reload();
+        }, 2000);
+    }
+    Cmutr.AddQuReact = function (re) {
+        if ($("#" + re.DrugCode + "_step1").length == 0) { return; }
+        if (re.returnresult) { $("#" + re.DrugCode + "_step0").hide(); $("#" + re.DrugCode + "_step1").show(); }
+        else { $("#" + re.DrugCode + "_step0").html("<p style='color:red;font-size:24px;'>新增失敗</p>"); }
+    }
+    //#endregion
+
+    Cmutr.Running();    
+
+    //院區 連動 藥櫃
+    $("#inComFid").change(function () {
+        let selectedName = $("#inComFid option:selected").text();
+        $("#inCbntFid optgroup").each(function () {
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });
+        if ($("#inCbntFid option:selected").parent().css('display') == "none") { $("#inCbntFid").val(""); }
+        $("#inCbntFid").change();
+    });
+    $(document).ready(function () {
+        $("#inComFid").change();
+        $("input[list]").dblclick(function () {
+            $(this).val('');
+        });
+    })
+
+    //#region 新增StockBill並加入排程
+    function AddingTask(calltype) {
+        $("#GetDrawers").hide();
+        let scanarry = [];
+        let qDrugCode = "";        
+        if (calltype == "manu") { //手動輸入
+            let qDrugName = $("#TransGoBill_DrugName").val()
+            let qTargetQty = $("#TransGoBill_TargetQty").val()
+            
+            let err = (qDrugName == "" || qDrugName.split('，').length < 2 || qTargetQty == "0" || qTargetQty == "");
+            if (qDrugName == "") { blinking("#TransGoBill_DrugName"); }
+            if (qDrugName != "" && qDrugName.split('，').length < 2) { blinking("#TransGoBill_DrugName"); AlertWin("請選擇正確的藥品名稱") }
+            if (qTargetQty == "0" || qTargetQty == "") { blinking("#TransGoBill_TargetQty"); }
+
+            if (err) { $("#GetDrawers").show(); return false; }
+
+            qDrugCode = qDrugName.split('，')[0];
+            BillModel.DrugCode = qDrugCode;
+            BillModel.DrugName = qDrugName.split('，')[1];
+            BillModel.TargetQty = qTargetQty;
+           
+        }
+        console.log(JSON.stringify(BillModel))
+
+        //Load資訊並呈現排程
+        if (Cmutr.QuHadDrug.length == 0){            
+            $("#TaskArea").prepend("<div class=\'taskbox\' id=\'task_" + qDrugCode + "\'>Loading..." + qDrugCode + "</div>");
+            AllDatas.TransGoBill = BillModel;
+            AllDatas.TransInBill.CbntFid = $("#inCbntFid").val();
+        }
+           
+        $("#task_" + qDrugCode).load("@Url.Action("DrawerTask_Trans","FrontLoad")"
+            , { vobj: AllDatas }
+            , function () { Cmutr.AddQu(qDrugCode, "@(Model.TransGoBill.BillType)"); }
+        )
+        
+    }
+    //#endregion
+
+    //#region 子介面呼叫 客製
+    function SaveStoreBillAndDone() {
+        let goPost = new AjaxJsonPostor("@Url.Action("TransGotoSave","FrontApi")", AllDatas);
+        goPost.SuccessCallback = function (result) {
+            if (result.code == 0) {
+                console.log("return result=" + JSON.stringify(result))
+                let upQu = { "DrugCode": AllDatas.DrugCode, "DrawFid": BillModel.DrawFid, "oprState": "2", "stockBillFid": result.returnData }
+                console.log("save upQu=" + JSON.stringify(upQu))
+                Cmutr.SetState(upQu);
+            }
+            else { AlertWin(result.returnData); }
+        }
+        goPost.Post();
+    }
+
+    function cancelBill(index){
+        AllDatas.stockBills.splice(index, 1);
+        AllDatas.bills.splice(index, 1);
+        if(AllDatas.stockBills.length > 0){
+            $("#task_" + AllDatas.DrugCode).load("@Url.Action("DrawerBatch","FrontLoad")"
+                , { vobj: AllDatas }
+                , function () { Cmutr.AddQu(AllDatas.DrugCode, "@(Model.TransGoBill.BillType)"); }
+            )
+        }
+        else { DeleteTask(AllDatas.DrugCode); }
+    }
+    
+    function checkBillExist(q){
+        let result = false;
+        AllDatas.stockBills.forEach(function (e, i) {
+            console.log(e.Scantext + " vs " + q.Scantext)
+            console.log(e.Scantext == q.Scantext)
+            if (e.Scantext == q.Scantext) { result = true; }
+        });
+        return result;
+    }
+    //#endregion
+
+
+</script>

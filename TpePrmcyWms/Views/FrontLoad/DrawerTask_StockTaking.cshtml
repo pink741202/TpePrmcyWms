@@ -1,0 +1,190 @@
+﻿@model TpePrmcyWms.Models.Unit.Front.QryDrawers;
+@using TpePrmcyWms.Models.Service;
+@using TpePrmcyWms.Models.Unit;
+@using Newtonsoft.Json;
+@{
+    Layout = null;
+
+    string qDrugCode = Model.DrugCode;
+
+}
+@if (!Model.isValid)
+{
+    <script type="text/javascript">
+        AlertWin('@(Model.InvalidMsg)');
+    </script>
+}
+
+
+<div class="OperDrugInStoreArea" style="max-width:900px;">
+    <table class="w3-table-all">
+        <tr>
+            <td width="140">@(qDrugCode.Replace("_b","瓶"))</td>
+            <td style="font-size:14px;">@(Model.stockBill.DrugName)</td>  
+            <td width="48">
+                <input type="button" id="@(qDrugCode)_close" class="w3-right red CancelBtn" value="✘" />
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <div id="@(qDrugCode)_step0">
+                    <p style="color:red; font-size: 30px;">排程等待中...</p>
+                </div>
+                <div id="@(qDrugCode)_step1" class="stepbox Hidden">
+                    @foreach (var ds in Model.drGridinfo)
+                    {
+                        string BatchNo = ds.gridBatches.Count > 0 ? ds.gridBatches[0].BatchNo : "";
+                        string addclass = ds.StockQty < Model.stockBill.TargetQty && !Model.stockBill.TradeType ? "NotEnough w3-right" : "";
+                        <div class="BtnStorage @(addclass)" DrawFid="@(ds.DrawFid)" GridFid="@(ds.FID)" style="height:110px;">
+                            <p class="no">@(ds.DrawerNo)號</p>
+                            <p>@(BatchNo)&nbsp;</p>
+                        </div>
+                    }
+
+                </div>
+                <div id="@(qDrugCode)_step2" class="stepbox Hidden">
+                    <div class="stepgrid div2">
+                        <div>
+                            數量：
+                            <input type="text" id="takeqty_@(qDrugCode)" value="@(Math.Round(Model.stockBill.TargetQty,0))" size="3" class="w3-right-align" onkeyup="this.value=InputOnlyNumber(this.value)" maxlength="5" />
+                        </div>
+                        <div>
+                            <input type="button" id="takeqty_@(qDrugCode)_done" class="w3-right Hidden" value="下一步" />
+                        </div>
+                    </div>
+
+                </div>
+                <div id="@(qDrugCode)_step3" class="stepbox Hidden">
+                    <div class="stepgrid div2">
+                        <div class="w3-left stepbox_inner">
+                            結存數量：
+                            <input type="text" id="stocktake_@(qDrugCode)" value="" size="2" class="w3-right-align" onkeyup="this.value=InputOnlyNumber(this.value)" maxlength="5" />
+                            @if (Model.PackageCnt > 0)
+                            {
+                                @:<input type="button" id="stocktake_@(qDrugCode)_package" class="w3-right" value="單位" />
+                            }
+                        </div>
+                        <div>
+                            <input type="button" id="stocktake_@(qDrugCode)_done" class="w3-right" value="結束" />
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>   
+</div>
+
+<script>
+    
+    $(document).ready(function () {
+        let stBill_@(qDrugCode) = @Html.Raw(JsonConvert.SerializeObject(Model.stockBill));
+        let DrugStockList = @Html.Raw(JsonConvert.SerializeObject(Model.drGridinfo));
+
+        let qDrugCode = '@(qDrugCode)';
+        let SelectedDrawer = null; //set by step2
+        let FinialStock = 0; //set by step2
+        let ChkStockTackTimes = 0; //use by step3
+
+        @if (Model.isValid)
+        {
+            @:setTimeout(autoclickstorage, 500);
+        }
+        function autoclickstorage(){ //自動按第一個櫃格
+            $("#@(qDrugCode)_step1 .BtnStorage:not(.NotEnough):first-child").click();
+        }
+
+        //關閉按鈕
+        $("#@(qDrugCode)_close").click(function () {     
+            DeleteTask(qDrugCode); return;
+        })
+
+        //開櫃
+        $("#@(qDrugCode)_OpenLedColor").click(function () {
+            SetState(qDrugCode, "0");
+        })
+
+        //步驟一 選倉位
+        $("#@(qDrugCode)_step1 .BtnStorage:not(.NotEnough)").each(function (index) {
+            $(this).on("click", function () {                
+                //取得所選的櫃位資訊,給要存檔的stockBill,和主頁的佇列DrugTaskQu
+                let sDrawFid = $(this).attr("DrawFid");
+                let sGridFid = $(this).attr("GridFid");
+                SelectingDrawer(qDrugCode, sDrawFid);
+                stBill_@(qDrugCode).DrawFid = sDrawFid;
+
+                //提供櫃位資訊給下個介面
+                SelectedDrawer = DrugStockList.find(x => x.FID == sGridFid); //選到的藥櫃
+                //console.log("SelectedDrawer=" + JSON.stringify(SelectedDrawer))
+                $("#@(qDrugCode)_step1").hide();
+                $("#@(qDrugCode)_step0").html("<p style='color:red;font-size:20px;'>安排中,請稍等...</p>").show();
+
+            })
+        });
+        
+        //步驟二 完成領藥量
+        $("#takeqty_@(qDrugCode)_done").click(function () {
+            $("#takeqty_@(qDrugCode)_done").attr('disabled', true);            
+            let takeqty = parseFloat($("#takeqty_@(qDrugCode)").val()); //實取量
+            let targetq = takeqty;
+            let nextstep = takeqty == targetq;
+            if (nextstep) {
+                stBill_@(qDrugCode).Qty = takeqty; //存值
+                FinialStock = SelectedDrawer.StockQty @(Model.stockBill.TradeType ? Html.Raw("+") : Html.Raw("-"))takeqty;
+                stBill_@(qDrugCode).SysChkQty = FinialStock;
+                stBill_@(qDrugCode).TakeType = SelectedDrawer.StockTakeType;
+
+                if (SelectedDrawer.StockTakeType != "" && SelectedDrawer.StockTakeType) { //是否有下一步
+                    $("#@(qDrugCode)_step2").hide();
+                    $("#@(qDrugCode)_step3").show();
+                    if (SelectedDrawer.StockTakeType == "1") { $("#stocktake_@(qDrugCode)").val(FinialStock); }//明盤
+                }
+                else { //一定會盤,不盤的這裡變明盤
+                    $("#@(qDrugCode)_step2").hide();
+                    $("#@(qDrugCode)_step0 p").html("<p style='color:red;font-size:20px;'>存檔中...</p>").show();
+                    SaveStoreBillAndDone(stBill_@(qDrugCode));
+                }
+            }
+            else{
+                AlertWin("實取量超過庫存量！");
+                return false;
+            }
+        })
+
+        //步驟三 完成盤點
+        $("#stocktake_@(qDrugCode)_done").click(function () {
+            $("#takeqty_@(qDrugCode)_done").attr('disabled', true);
+            if ($("#stocktake_@(qDrugCode)").val() == "") {
+                $("#takeqty_@(qDrugCode)_done").attr('disabled', false);
+                return;
+            }
+            ChkStockTackTimes++;
+            if (ChkStockTackTimes == 1) {stBill_@(qDrugCode).UserChk1Qty = $("#stocktake_@(qDrugCode)").val(); }
+            if (ChkStockTackTimes == 2) {stBill_@(qDrugCode).UserChk2Qty = $("#stocktake_@(qDrugCode)").val(); }
+            if ($("#stocktake_@(qDrugCode)").val() != FinialStock && ChkStockTackTimes < 2) {
+                blinkfocus("#stocktake_@(qDrugCode)");
+                AlertWin("藥品[@(qDrugCode)] 盤點數量錯誤，請再盤一次！");
+                $("#stocktake_@(qDrugCode)").val("");
+                $("#takeqty_@(qDrugCode)_done").attr('disabled', false);
+                return;
+            }
+            if ($("#stocktake_@(qDrugCode)").val() != FinialStock && ChkStockTackTimes >= 2) {
+                $("#stocktake_@(qDrugCode)").addClass("InputAlertFocus");
+                AlertWin("藥品[@(qDrugCode)] 盤點數量錯誤，將紀錄存檔！");
+            }
+            
+            //存檔StoreBill並結束
+            $("#@(qDrugCode)_step3").hide();
+            $("#@(qDrugCode)_step0").html("<p style='color:red;font-size:20px;'>存檔中...</p>").show();
+            SaveStoreBillAndDone(stBill_@(qDrugCode));
+        })
+
+        //包裝盤點
+        $("#stocktake_@(qDrugCode)_package").click(function () {
+            $("#overlay-content-text").load("@Url.Action("PackageCounter","FrontLoad", new { qDrugCode = Model.DrugCode })");
+            OpenAlertWin();
+        })
+
+        
+    });
+    
+</script>

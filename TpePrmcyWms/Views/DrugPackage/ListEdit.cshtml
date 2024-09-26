@@ -1,0 +1,100 @@
+﻿@model TpePrmcyWms.Models.DOM.DrugPackage
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "drugfullquery" });
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(LblMapValues["DrugFid"].Substring(0,30))... @(Model.UnitQty) @(Model.UnitTitle)</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />        
+        <div class="form-group Span2Col">
+            <label asp-for="DrugFid" class="control-label"></label>
+            <input type="hidden" asp-for="DrugFid" class="form-control" />
+            <input asp-for="DrugName" list="DrugList" />
+            <datalist id="DrugList" >
+                @foreach (var item in DropValueList.Where(x => x.Group == "drugfullquery").ToList())
+                {
+                    <option value="@(item.Value)">@(item.Text)</option>
+                }
+            </datalist>
+            <span asp-validation-for="DrugFid" class="text-danger"></span>
+        </div> 
+        <div class="form-group">
+            <label asp-for="UnitWeight" class="control-label"></label>
+            <input asp-for="UnitWeight" class="form-control" type="number" />
+            <span asp-validation-for="UnitWeight" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="UnitQty" class="control-label"></label>
+            <input asp-for="UnitQty" class="form-control" type="number" />
+            <span asp-validation-for="UnitQty" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="TotalWeight" class="control-label"></label>
+            <input asp-for="TotalWeight" class="form-control" type="number" />
+            <span asp-validation-for="TotalWeight" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="PackageWeight" class="control-label"></label>
+            <input asp-for="PackageWeight" class="form-control" type="number" />
+            <span asp-validation-for="PackageWeight" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="UnitTitle" class="control-label"></label>
+            <input asp-for="UnitTitle" class="form-control" />
+            <span asp-validation-for="UnitTitle" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="BarcodeNo" class="control-label"></label>
+            <input asp-for="BarcodeNo" class="form-control" />
+            <span asp-validation-for="BarcodeNo" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+
+	</div>
+    <div class="ListCtrlPanel">
+		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+		{
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    
+    $(document).ready(function () {
+        $("input[list]").dblclick(function () {
+            $(this).val('');
+        });
+    });
+</script>

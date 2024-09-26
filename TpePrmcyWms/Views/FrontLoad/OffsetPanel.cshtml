@@ -1,0 +1,297 @@
+﻿@model TpePrmcyWms.Models.Unit.Front.QryOffsetDrawers;
+@using TpePrmcyWms.Models.DOM;
+@using TpePrmcyWms.Models.Service;
+@using TpePrmcyWms.Models.Unit;
+@using TpePrmcyWms.Models.Unit.Front;
+@using Newtonsoft.Json;
+@{
+    Layout = null;
+    string qDrugCode = Model.DrugCode;
+
+    decimal prscptQ = (Model.UnitConvert != null && Model.Qty_Prscpt > 0) ? Math.Round(Model.Qty_Prscpt / Model.UnitConvert ?? 1, 1) : Model.Qty_Prscpt;
+    decimal usedQ = Model.Qty_Apply - Model.Qty_ReturnDrug;
+    bool isBalance = prscptQ == usedQ && (Model.Qty_ReturnEmpty == -1 || usedQ == Model.Qty_ReturnEmpty);
+    string WaitToOffsetTime = ViewBag.WaitToOffsetTime;
+}
+@if (!Model.isValid)
+{
+    <script type="text/javascript">
+        AlertWin('@(Model.InvalidMsg)');
+    </script>
+}
+else
+{
+    <script type="text/javascript">
+        $("#DrugName").prop("readonly", true);
+        $(".step_input").hide();
+        $(".actbtn").show();
+        $(".step_menu").show();
+        if (@(Model.Qty_ReturnEmpty) == -1) { $("#btn_bottle").hide(); }
+    </script>
+}
+
+
+<style>
+    
+    .OffsetList .qtydata {
+        width: 30%;
+        min-width: 240px;
+        float: left;
+        padding: 2px 5px;
+    }
+
+        .OffsetList .qtydata:nth-child(1) {
+            width: 40%;
+        }
+
+    .OffsetList .enlarge {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+
+    .OffsetList .qtydata .enlarge {
+        color: darkred;
+    }
+
+    .OffsetList .qtytitle{
+        background-color: antiquewhite;
+    }
+    .OffsetList .billList {
+        display: inline-block;
+        align-content: start;
+        width: 100%;
+        height: calc(100vh - 340px);
+        justify-items: center;
+        overflow-y: scroll;
+    }
+
+        .OffsetList .billList::-webkit-scrollbar {
+            width: 3px;
+        }
+        .OffsetList .billList::-webkit-scrollbar-thumb {
+            background: brown;
+            border-radius: 10px;
+        }
+
+    .OffsetList .listRow{
+        width: 100%;
+        display: flex;
+        border: none;
+        padding: 0px;
+        word-wrap: break-word;
+    }
+    .OffsetList .chkbtn {
+        width: 90%;
+        display: inline-block;
+        border: 2px solid green;
+        border-radius: 10px;
+        padding: 6px;
+        margin: 6px 1px 6px 2%;
+        color: dimgray;
+        cursor: pointer;
+        word-wrap: break-word;
+    }
+
+        .OffsetList .chkbtn:active{
+            transform: translateY(3px);
+        }
+
+        .OffsetList .chkbtn:hover{
+            box-shadow: 0px 0px 10px 1px LawnGreen;
+        }
+
+    .OffsetList .chkbtn.selected{
+        color: white;
+        background-color: forestgreen;
+    }
+
+        .OffsetList .chkbtn.selected .enlarge {
+            color: yellow;
+        }
+
+    .OffsetList .chkbtn > .picIcon{
+        height: 30px;
+        transform: translateY(-5px);
+    }
+
+    input[type=button].CancelBtn {
+        font-size: 0.8em;
+        padding: 1px 6px;
+        margin : 10px 0px;
+    }
+    
+
+</style>
+
+<div class="OperDrugInStoreArea OffsetList">
+    <table class="w3-table-all">
+        @if (Model.isValid)
+        {
+            <tr>
+                <td colspan="2">                    
+                    <div class="qtydata">
+                        <div class="qtytitle">藥單</div>
+                        數量：<span class="enlarge" id="ttlq_prscpt">@(Math.Round(Model.Qty_Prscpt, 0))</span>
+                        @if (Model.UnitConvert != null && Model.Qty_Prscpt > 0)
+                        {
+                            @Html.Raw($" (<span class='enlarge' id='ttlq_prscptSUM'>{Math.Round(Model.Qty_Prscpt / Model.UnitConvert ?? 1, 1)}</span>)");
+                        }
+                    </div>
+                    <div class="qtydata">
+                        <div class="qtytitle">借出</div>
+                        數量：<span class="enlarge" id="ttlq_taked">@(Math.Round(Model.Qty_Apply, 0) - Math.Round(Model.Qty_ReturnDrug, 0))</span>
+                        @if (Model.Qty_ReturnDrug > 0)
+                        {
+                            @Html.Raw($"(<span id='ttlq_apply'>{Math.Round(Model.Qty_Apply, 0)}</span>-<span id='ttlq_return'>{Math.Round(Model.Qty_ReturnDrug, 0)}</span>)")
+                            ;
+                        }
+                    </div>
+                    @if(Model.Qty_ReturnEmpty > -1)
+                    {
+                        <div class="qtydata">
+                            <div class="qtytitle">空瓶歸還</div>
+                            數量：<span class="enlarge" id="ttlq_bottle">@(Math.Round(Model.Qty_ReturnEmpty, 0))</span>
+                        </div>
+                    }
+                </td>
+            </tr>
+            <tr>
+                <td width="60%">
+                    <div class="billList">
+                        @foreach (PrscptBillInfo item in Model.bills)
+                        {
+                            <div class="listRow">
+                                <div class="chkbtn selected" bId="@(item.FID)" bQty="@(Math.Round(item.TtlQty ?? 0, 0))" bType="PRSCPT">
+                                    @(item.PrscptNo)𓄲@(item.PatientNo) (<span class="enlarge">@(Math.Round(item.TtlQty ?? 0, 0))</span>)
+                                    
+                                </div>
+                                <input type="button" class="w3-right red CancelBtn" value="✘" onclick="DeletingPrscpt(@(item.FID))" />
+                            </div>
+                            
+                        }
+                    </div>
+                </td>
+                <td width="40%">
+                    <div class="billList">
+                        @foreach (StockBill item in Model.stockBills)
+                        {
+                            if (!item.TradeType && Model.DrugCode == item.DrugCode)
+                            {
+                                <div class="chkbtn selected" bId="@(item.FID)" bQty="@(Math.Round(item.Qty, 0))" bType="LENDED">
+                                    <img class="picIcon" src="~/Images/SystemUse/CabinetOut.png" >                                    
+                                    借出(<span class="enlarge">@(Math.Round(item.Qty, 0))</span>)
+                                    <span id="CountDown_@(item.FID)">@(Convert.ToDateTime(item.moddate).ToString("HH:mm"))</span>
+                                    <div class="Hidden LendedTime" id="@(item.FID)">@(Convert.ToDateTime(item.moddate).ToString("yyyy-MM-dd HH:mm"))</div>
+                                </div>
+                            }
+                            if (item.TradeType && Model.DrugCode == item.DrugCode)
+                            {
+                                <div class="chkbtn selected" bId="@(item.FID)" bQty="@(Math.Round(item.Qty, 0))" bType="RETURN">
+                                    <img class="picIcon" src="~/Images/SystemUse/CabinetIn.png">
+                                    退藥(<span class="enlarge">@(Math.Round(item.Qty, 0))</span>)
+
+                                </div>
+                            }
+                            if (item.TradeType && Model.DrugCode != item.DrugCode)
+                            {
+                                <div class="chkbtn selected" bId="@(item.FID)" bQty="@(Math.Round(item.Qty, 0))" bType="BOTTLE">
+                                    <img class="picIcon" src="~/Images/SystemUse/EmptyMedicineBottle.png">
+                                    空瓶(<span class="enlarge">@(Math.Round(item.Qty, 0))</span>)
+
+                                </div>
+                            }
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+        
+        
+        
+
+    </table>
+</div>
+
+<script>
+    AllDatas = @Html.Raw(JsonConvert.SerializeObject(Model));
+    DataToSave = @Html.Raw(JsonConvert.SerializeObject(Model));    
+    
+    $(document).ready(function () {
+        if ('@(isBalance)' == 'True') { $("#btn_offset").show(); }
+        else { $("#btn_offset").hide(); }
+    });
+
+    Cmutr.TikCallBack = function(){
+        let WaitToOffsetTime = "@(WaitToOffsetTime)" != "" ? parseInt(@(WaitToOffsetTime)) : 0;
+        let nowtime = new Date();
+        //console.log(nowtime)
+        $(".LendedTime").each(function () {
+            let diff = DiffTime_hms(nowtime, new Date($(this).text()));
+            let diffs = diff.split(":");
+            let disp = (parseInt(diffs[0]) > WaitToOffsetTime) ? "已過時！" : diffs[0] + ":" + diffs[1];
+            $("#CountDown_" + $(this).attr("id")).text(disp);
+            if (parseInt(diffs[0]) > (WaitToOffsetTime - 1)){
+                $("#CountDown_" + $(this).attr("id")).css("background-color","red");
+            }
+        })
+    }
+
+    $(".chkbtn").click(function(){
+        $(this).toggleClass("selected");
+
+        let id = $(this).attr("bId"); 
+        let qty = $(this).attr("bQty");
+        let typ = $(this).attr("bType");
+        let state = $(this).hasClass("selected");
+
+        //console.log("result=" + typ + " " + id + " " + qty + " " + state);
+        //變更上方統計數字
+        switch(typ){
+            case "PRSCPT":
+                $("#ttlq_prscpt").text(parseInt($("#ttlq_prscpt").text()) + (parseInt(qty) * (state ? 1 : -1)));
+                if ($("#ttlq_prscptSUM")){
+                    $("#ttlq_prscptSUM").text((parseInt($("#ttlq_prscpt").text()) / @(Model.UnitConvert)).toFixed(1));
+                }
+            break;
+            case "LENDED":
+                $("#ttlq_taked").text(parseInt($("#ttlq_taked").text()) + (parseInt(qty) * (state ? 1 : -1)));
+                $("#ttlq_apply").text(parseInt($("#ttlq_apply").text()) + (parseInt(qty) * (state ? 1 : -1)));
+                break;
+            case "RETURN":
+                $("#ttlq_taked").text(parseInt($("#ttlq_taked").text()) + (parseInt(qty) * (state ? -1 : 1)));
+                $("#ttlq_return").text(parseInt($("#ttlq_return").text()) + (parseInt(qty) * (state ? 1 : -1)));
+                break;
+            case "BOTTLE":
+                $("#ttlq_bottle").text(parseInt($("#ttlq_bottle").text()) + (parseInt(qty) * (state ? 1 : -1)));
+                break;
+        }
+        //變更待送出存檔的物件
+        if (typ == "PRSCPT"){
+            let findobj = DataToSave.bills.find(x => x.FID == id);
+            if (!state) { DataToSave.bills.splice(DataToSave.bills.indexOf(findobj), 1); } //減少
+            if (state && !findobj) { //增加
+                let findall = AllDatas.bills.find(x => x.FID == id);
+                DataToSave.bills = [...DataToSave.bills, findall];
+            }
+        }
+        else{
+            let findobj = DataToSave.stockBills.find(x => x.FID == id);
+            if (!state) { DataToSave.stockBills.splice(DataToSave.stockBills.indexOf(findobj), 1); } //減少
+            if (state && !findobj) { //增加
+                let findall = AllDatas.stockBills.find(x => x.FID == id);
+                DataToSave.stockBills = [...DataToSave.stockBills, findall];
+            }
+        }
+        //是否可結算
+        let ttlq_bottle = $("#ttlq_bottle") ? $("#ttlq_bottle").text() : $("#ttlq_taked").text();
+        let ttlq_taked = $("#ttlq_taked").text();
+        let ttlq_prscpt = $("#ttlq_prscptSUM").text() ? $("#ttlq_prscptSUM").text() : $("#ttlq_prscpt").text();
+        //console.log(ttlq_bottle + " " + ttlq_taked + " " + ttlq_prscpt);
+        if (ttlq_bottle == ttlq_taked && parseInt(ttlq_taked) > 0 && ttlq_taked == ttlq_prscpt.replace(".0", "")) { $("#btn_offset").show(); }
+        else { $("#btn_offset").hide(); }
+        
+    })
+
+
+
+</script>

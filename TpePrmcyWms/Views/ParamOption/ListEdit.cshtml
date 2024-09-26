@@ -1,0 +1,87 @@
+﻿@model TpePrmcyWms.Models.DOM.ParamOption
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vParamOptions> ParentOpt = ViewFunc.vParamSelect();
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.GroupName) - @(Model.OptionName)</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="GroupCode" class="control-label"></label>
+            <input asp-for="GroupCode" class="form-control" />
+            <span asp-validation-for="GroupCode" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="GroupName" class="control-label"></label>
+            <select id="GroupCodeSelector" class="form-control"
+                    asp-items="@(ParentOpt.Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.GroupCode }))">
+                <option value="">▼現有快選</option>
+            </select>
+            <input asp-for="GroupName" class="form-control" />
+            <span asp-validation-for="GroupName" class="text-danger"></span>
+        </div> 
+        <div class="form-group">
+            <label asp-for="OptionCode" class="control-label"></label>
+            <input asp-for="OptionCode" class="form-control" />
+            <span asp-validation-for="OptionCode" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="OptionName" class="control-label"></label>
+            <input asp-for="OptionName" class="form-control" />
+            <span asp-validation-for="OptionName" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="Sorting" class="control-label"></label>
+            <input asp-for="Sorting" class="form-control" />
+            <span asp-validation-for="Sorting" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+
+	</div>
+    <div class="ListCtrlPanel">
+		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+		{
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+        //連動,快選群組
+    $(document).ready(function(){
+        $("#GroupCodeSelector").change(function(){
+            $("#GroupCode").val($(this).val())
+            $("#GroupName").val($("#GroupCodeSelector option:selected").text())
+        })
+    })
+</script>

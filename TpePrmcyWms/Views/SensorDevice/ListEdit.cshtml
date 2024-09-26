@@ -1,0 +1,163 @@
+﻿@model TpePrmcyWms.Models.DOM.SensorDevice
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "cabinet", "drawernosub", "drawerno", "drgridsub", "drugweigh", "drugname" });
+    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "SensorType" });
+    List<SelectListGroup> CbntGroup = DropValueList.Where(x => x.Group == "cabinet").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+    List<SelectListGroup> DrawGroup = DropValueList.Where(x => x.Group == "drawerno").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+    List<SelectListGroup> DrugNameGroup = DropValueList.Where(x => x.Group == "drugname").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+    
+
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.SensorType) - @(Model.SensorNo)</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="CbntFid" class="control-label"></label>
+            <select name="CbntFid" id="CbntFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="cabinet")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.CbntFid.ToString() }))">
+                <option value="0">▼請選擇</option>
+            </select>
+            <span asp-validation-for="CbntFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="DrawFid" class="control-label"></label>
+            <select name="DrawFid" id="DrawFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="drawernosub")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.DrawFid.ToString(), Group=CbntGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                <option value="0">▼請選擇</option>
+            </select>
+            <span asp-validation-for="DrawFid" class="text-danger"></span>
+        </div>
+        <div class="form-group Span2Col">
+            <label asp-for="DrGridFid" class="control-label"></label>
+            <select asp-for="DrGridFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="drgridsub")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.DrGridFid.ToString(), Group=DrawGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="DrGridFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="SensorType" class="control-label"></label>
+            <select asp-for="SensorType" class="form-control"
+                    asp-items="@(DropParamList.Where(x=>x.Group=="SensorType")
+                    .Select(s => new SelectListItem { Value = s.Value, Text=s.Text, Selected=s.Value==Model.SensorType }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="SensorType" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="SensorNo" class="control-label"></label>
+            <input asp-for="SensorNo" class="form-control" />
+            <span asp-validation-for="SensorNo" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="SerialPort" class="control-label"></label>
+            <select asp-for="SerialPort" class="form-control" 
+                asp-items="@(ViewBag.SerialPortList)" >
+                <option value="">無</option>
+            </select>
+            <span asp-validation-for="SerialPort" class="text-danger"></span>
+        </div> 
+        <div class="form-group">
+            <label asp-for="Modbus_Addr" class="control-label"></label>
+            <input asp-for="Modbus_Addr" class="form-control" />
+            <span asp-validation-for="Modbus_Addr" class="text-danger"></span>
+        </div>
+		<div class="form-group">
+            <label asp-for="Modbus_Rgst" class="control-label"></label>
+            <input asp-for="Modbus_Rgst" class="form-control" />
+            <span asp-validation-for="Modbus_Rgst" class="text-danger"></span>
+		</div>
+
+        <div class="form-group" id="setPackage">
+            <label asp-for="PackageFid" class="control-label"></label>
+            <select asp-for="PackageFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="drugweigh")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.PackageFid.ToString(), Group=DrugNameGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="PackageFid" class="text-danger"></span>
+        </div>
+
+        <div class="form-group" >
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+
+	</div>
+    <div class="ListCtrlPanel">
+		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+		{
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+		}
+	</div>
+</form>
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    //藥櫃 連動 藥格
+    $("#CbntFid").change(function () {
+        let selectedName = $("#CbntFid option:selected").text();
+        $("#DrawFid optgroup").each(function () {
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });
+        if ($("#DrawFid option:selected").parent().css('display') == "none") { $("#DrawFid").val(""); }
+    });
+    //藥格 連動 藥品
+    $("#DrawFid").change(function () {
+        let selectedDrawName = $("#DrawFid option:selected").text();
+        let selectedCbntName = $("#CbntFid option:selected").text();
+        $("#DrGridFid optgroup").each(function () {
+            if ($(this).attr("label") == selectedCbntName+selectedDrawName) { $(this).show(); }
+            else { $(this).hide(); }
+        });
+        if ($("#DrGridFid option:selected").parent().css('display') == "none") { $("#DrGridFid").val(""); }
+    });
+    //藥品 連動 換算重量資料
+    $("#DrGridFid").change(function () {
+        let selectedName = $("#DrGridFid option:selected").text();
+        $("#PackageFid optgroup").each(function () {
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });
+        if ($("#PackageFid option:selected").parent().css('display') == "none") { $("#PackageFid").val(""); }
+    });
+    //感應器類型 連動 換算重量資料是否呈現
+    $("#SensorType").change(function(){
+        if ($("#SensorType option:selected").val() == "SCALE") { $("#setPackage").show(); } else { $("#setPackage").hide(); }
+    })
+
+    $(document).ready(function (){
+        $("#CbntFid").change();
+        $("#DrawFid").change();
+        $("#DrGridFid").change();
+        $("#SensorType").change();
+    })
+</script>

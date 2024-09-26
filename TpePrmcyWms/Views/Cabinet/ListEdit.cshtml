@@ -1,0 +1,149 @@
+﻿@model TpePrmcyWms.Models.DOM.Cabinet
+@using Newtonsoft.Json;
+@using TpePrmcyWms.Models.Service
+@using TpePrmcyWms.Models.DOM;
+@{
+    Layout = null;
+    Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "company", "department", "employee" });
+    List<SelectListGroup> CompGroup = DropValueList.Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+    List<MapMenuOnCbnt> hasFuncs = ViewBag.hasFuncs;
+    List<string> weekname = new List<string> { "日", "一", "二", "三", "四", "五", "六" };
+}
+<div id="CancelEdit" onclick="CancelEdit()">✘</div>
+<h4>@(Model.CbntName)</h4>
+<form name="form1" id="form1" asp-action="ListEdit">
+    <div class="EditPage">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="FID" />
+        <div class="form-group">
+            <label asp-for="CbntName" class="control-label"></label>
+            <input asp-for="CbntName" class="form-control" />
+            <span asp-validation-for="CbntName" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="CbntDesc" class="control-label"></label>
+            <input asp-for="CbntDesc" class="form-control" />
+            <span asp-validation-for="CbntDesc" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="DrawerCount" class="control-label"></label>
+            <input asp-for="DrawerCount" class="form-control" />
+            <span asp-validation-for="DrawerCount" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="comFid" class="control-label"></label>
+            <select name="comFid" id="comFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="company")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.comFid.ToString() }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="comFid" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="dptFid" class="control-label"></label>
+            <select name="dptFid" id="dptFid" class="form-control"
+                    asp-items="@(DropValueList.Where(x=>x.Group=="department")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.dptFid.ToString(), Group=CompGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="dptFid" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="modid" class="control-label"></label>
+            <input class="form-control" value="@(LblMapValues["modid"] ?? "")" readonly />
+        </div>
+        <div class="form-group">
+            <label asp-for="moddate" class="control-label"></label>
+            <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
+        </div>
+
+        <div class="form-group Span2Col">
+            <label asp-for="StockTakeConfig_Day" class="control-label"></label>
+            <div style="display:flex;">
+                @for (int i = 0; i < 7; i++)
+                {
+                    @(weekname[i]) @:&nbsp;
+                    @Html.CheckBox("StockTakeConfig_DayList", Model.StockTakeConfig_Day?.Contains(i.ToString()), new { @class = "form-check-input form-control", @Value=i})
+                    @:&nbsp;&nbsp;
+                }
+            </div>             
+            <span asp-validation-for="StockTakeConfig_Day" class="text-danger"></span>
+        </div>
+        <div class="form-group Span2Col">
+            <label asp-for="StockTakeConfig_Time" class="control-label"></label>
+            <div style="display:flex; flex-direction:column;width:80%;">
+                @for (int i = 0; i < 6; i+=2)
+                {
+                    string t0 = Model.StockTakeConfig_TimeList.Count >= i + 2 ? Model.StockTakeConfig_TimeList[i] : "";
+                    string t1 = Model.StockTakeConfig_TimeList.Count >= i + 2 ? Model.StockTakeConfig_TimeList[i + 1] : "";
+
+                    <div style="display:flex;padding:5px;align-items:center;width:100%;justify-content: center;">
+                        <div style="width:100px;">時段@(weekname[(i / 2) + 1])</div>
+                        <input id="StockTakeConfig_TimeList" class="form-control" value="@(t0)" type="time" asp-format="{0:HH:mm}" style="width:160px;" /> ~
+                        <input id="StockTakeConfig_TimeList" class="form-control" value="@(t1)" type="time" asp-format="{0:HH:mm}" style="width:160px;" />
+                    </div>
+                }
+            </div>
+            <span asp-validation-for="StockTakeConfig_Time" class="text-danger"></span>
+        </div>
+
+        
+
+    </div>
+    <div class="ListCtrlPanel">
+        @if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
+        {
+            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+        }
+    </div>
+</form>
+
+
+
+<script>
+    //送出鈕
+    function goSubmit() {
+        $(".btn").hide();
+        let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
+
+        EditModel.StockTakeConfig_Day = "";
+        $.each($("input#StockTakeConfig_DayList:checked"), function () {
+            EditModel.StockTakeConfig_Day += $(this).val() + ",";
+        });
+        
+        EditModel.StockTakeConfig_Time = "";
+        for (let i = 0; i < $("input#StockTakeConfig_TimeList").length; i += 2) {
+            let t0 = $("input#StockTakeConfig_TimeList").get(i).value;
+            let t1 = $("input#StockTakeConfig_TimeList").get(i + 1).value;
+            if (t0 == "" ^ t1 == "") { AlertWin("盤點設定-時段 設定錯誤"); $(".btn").show(); return false; }
+            if (t0 != "") { EditModel.StockTakeConfig_Time += (t0 + "~" + t1 + ","); }
+        }
+
+
+        //console.log(JSON.stringify(EditModel))
+        SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //取消鈕
+    function CancelEdit() {
+        $(".ListPage_EditArea").hide();
+        $(".ListPage_QueryArea").show();
+    }
+    //公司連動部門
+    $("#comFid").change();
+    $("#comFid").change(function () {
+        let selectedName = $("#comFid option:selected").text();
+        $("#dptFid optgroup").each(function(){
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });        
+    });
+    
+    
+    
+</script>
