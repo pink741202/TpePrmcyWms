@@ -14,7 +14,7 @@
             <div class="form-actions no-color">
                 藥品代碼 / 中英名稱：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" />
                 <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
-                <input type="button" id="btn_submit2" value="下載" class="btn btn_InputSubmit" onclick="DeleteRecord()" /> |
+                <input type="button" id="btn_submit2" value="下載" class="btn btn_InputSubmit" onclick="submitDownload()" /> |
                 
             </div>
         </form>
@@ -158,6 +158,35 @@
         }
         DeletePost.Post();
     }
+
+    function submitDownload() {
+        fetch('@Url.Action("ReportDownload", "ReportGenerate")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ orderCode: 123 }) // 這裡是你的 orderCode
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob(); // 期待文件下載
+                }
+                throw new Error('下載失敗');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'your-file.xlsx';  // 這裡指定文件名
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+
     //同步醫院資料庫
     function goQueryApi() {
         let qstring = $("#DrugCode").val();

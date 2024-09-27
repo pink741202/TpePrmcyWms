@@ -18,6 +18,10 @@ namespace TpePrmcyWms.Controllers.Back
 
         public ReportGenerateController(IWebHostEnvironment webHostEnvironment)
         {
+            if (webHostEnvironment == null)
+            {
+                throw new ArgumentNullException(nameof(webHostEnvironment), "IWebHostEnvironment is not provided.");
+            }
             _webHostEnvironment = webHostEnvironment;
         }
 
@@ -124,7 +128,8 @@ namespace TpePrmcyWms.Controllers.Back
                 if (fileStream == null)
                     throw new Exception("路徑檔案未找到:" + fileName);
 
-                return File(fileStream, "application/octet-stream", fileName);
+                //return File(fileStream, "application/octet-stream", fileName);
+                return File(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
             }
             catch (Exception ex)
             {
