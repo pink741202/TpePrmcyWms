@@ -189,7 +189,6 @@ namespace TpePrmcyWms.Controllers.Back
             {
                 StringComparison comp = StringComparison.OrdinalIgnoreCase;
                 obj = obj.Where(s => (s.DrugCode ?? "").Contains(qKeyString)
-                      || (s.DrugName ?? "").Contains(qKeyString)
                 );
             }
 
