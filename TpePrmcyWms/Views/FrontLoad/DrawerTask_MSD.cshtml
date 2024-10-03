@@ -1,0 +1,186 @@
+﻿@model TpePrmcyWms.Models.Unit.Front.QryDrawers;
+@using TpePrmcyWms.Models.Service;
+@using TpePrmcyWms.Models.Unit;
+@using Newtonsoft.Json;
+@{
+    Layout = null;
+
+    string qDrugCode = Model.DrugCode;
+    string tradestring = "";
+    string BillType = Model.stockBill.BillType;
+    switch (BillType)
+    {
+        case "MSDT": tradestring = "領藥"; break;
+        case "MSDR": tradestring = "還藥"; break;
+    }
+    
+}
+@if (!string.IsNullOrEmpty(Model.InvalidMsg))
+{
+    <script type="text/javascript">
+        AlertWin('@(Model.InvalidMsg)');
+    </script>
+}
+<style>
+    .smaller{font-size: 0.9em;}
+</style>
+
+<div class="OperDrugInStoreArea">
+    <table class="w3-table-all">
+        <tr>
+            <td width="140">@(qDrugCode)</td>
+            <td style="font-size:14px;">@(Model.stockBill.DrugName)</td>            
+            <td width="80">
+                <img id="@(qDrugCode)_doorOpen" class="Hidden" src="~/Images/SystemUse/cabinetOpen.jpg" width="43" height="39" />
+                <input type="button" id="@(qDrugCode)_close" class="w3-right" value="關閉" />
+            </td>
+        </tr>
+        
+        @if (Model.isValid)
+        {
+            <tr>
+                <td colspan="3">
+                    <div id="@(qDrugCode)_step0">
+                        <p style="color:red; font-size: 30px;">排程等待中...</p>
+                    </div>
+                    <div id="@(qDrugCode)_step1" class="stepbox Hidden">
+                        @foreach (var ds in Model.drGridinfo)
+                        {
+                            string BatchNo = ds.gridBatches.Count > 0 ? ds.gridBatches[0].BatchNo : "";
+                            string addclass = ds.StockQty < Model.stockBill.TargetQty && !Model.stockBill.TradeType ? "NotEnough w3-right" : "";
+                            string BlockReason = addclass != "" ? "庫存不足" : "";
+                            if (BillType == "TI2" && addclass == "" && Model.stockBill.TradeType && (ds.StockQty + Model.stockBill.TargetQty) > ds.MaxLimitQty) //是否放不下
+                            {
+                                addclass = "NotEnough w3-right"; BlockReason = "將超過庫存上限";
+                            }
+                            <div class="BtnStorage @(addclass)" DrawFid="@(ds.DrawFid)" style="height:110px;" title="@(BlockReason)">
+                                <p class="no">@(ds.DrawerNo)號</p>
+                                <p>@(BatchNo)&nbsp;</p>
+                            </div>
+                        }
+
+                    </div>
+                    <div id="@(qDrugCode)_step2" class="stepbox Hidden">
+                        <div class="stepgrid">
+                            <div>
+                                <div id="QtyBox">
+                                    重量(g)：
+                                    <input type="text" id="takeweight_@(qDrugCode)" value="0" size="5" class="w3-right-align" onkeyup="replaceScaleTest()"/>
+								</div>
+                                <div id="QtyBox">
+                                    體積(cc)：
+                                    <input type="text" id="takeqty_@(qDrugCode)" value="0" size="5" class="w3-right-align" disabled />
+								</div>
+                                <div id="BatchNoBox"></div>
+                            </div>
+
+                            <div style="display:grid;gap:24px;padding:0 8px;">
+                                <input type="button" id="takeqty_@(qDrugCode)_next" class="w3-right smaller" value="確定重量" style="background-color:forestgreen;"
+                                        onclick="AddingWeightAndQty()" />
+                                <input type="button" id="takeqty_@(qDrugCode)_done" class="w3-right smaller" value="結束稱重" />
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                </td>
+            </tr>
+        }
+        else
+        {
+            <tr>
+                <td>錯誤</td>
+                <td colspan="3">
+                    <div id="@(qDrugCode)_step0">
+                        <p style="color:red; font-size: 30px;">@(Model.InvalidMsg)</p>
+                    </div>
+                </td>
+            </tr>
+        }
+
+    </table>   
+</div>
+
+<script>
+    var stBill_@(qDrugCode) = @Html.Raw(JsonConvert.SerializeObject(Model.stockBill));    
+    
+
+    $(document).ready(function () {
+        let DrugStockList = @Html.Raw(JsonConvert.SerializeObject(Model.drGridinfo));
+        let qDrugCode = '@(qDrugCode)';
+        let SelectedDrawer = null; //set by step2
+        let FinialStock = 0; //set by step2
+        let ChkStockTackTimes = 0; //use by step3
+                
+        //因應功能不同而變動介面或自動跳過第一步選櫃
+        if ("@(Model.isValid)" == "True") {
+            if (DrawerTaskConfig.skipStep1) { setTimeout(autoclickstorage, 200); }
+            if (DrawerTaskConfig.skipStep1When1 && DrugStockList.length == 1) { setTimeout(autoclickstorage, 200); }
+            if (DrawerTaskConfig.hideBtnStorage) { $(".BtnStorage").hide(); $(".stepgrid").addClass("div2"); }
+            function autoclickstorage() {
+                $("#@(qDrugCode)_step1 .BtnStorage:not(.NotEnough):first-child").click();
+            }
+        }
+
+        //關閉按鈕
+        $("#@(qDrugCode)_close").click(function () {
+            if ("@(Model.isValid)" == "False") {
+                DeleteTask("@(qDrugCode)"); return;
+            }
+            else{
+                confirmWin("操作未完成，確定取消？", (confirmed) => {
+                    if (confirmed) { DeleteTask("@(qDrugCode)"); };
+                })
+            }
+        })
+
+        //開櫃
+        $("#@(qDrugCode)_OpenLedColor").click(function () {
+            SetState("@(qDrugCode)", "0");
+        })
+
+        //步驟一 選倉位
+        $("#@(qDrugCode)_step1 .BtnStorage:not(.NotEnough)").each(function (index) {
+            $(this).on("click", function () {                
+                //取得所選的櫃位資訊,給要存檔的stockBill,和主頁的佇列DrugTaskQu
+                let sDrawFid = $(this).attr("DrawFid");
+                SelectingDrawer(qDrugCode, sDrawFid);
+                stBill_@(qDrugCode).DrawFid = sDrawFid;
+
+                //提供櫃位資訊給下個介面
+                SelectedDrawer = DrugStockList.find(x => x.DrawFid == sDrawFid); //選到的藥櫃                
+                $("#@(qDrugCode)_step2_BoxName").text(SelectedDrawer.DrawerNo+"號");
+                $("#@(qDrugCode)_step1").hide(1000);
+                $("#@(qDrugCode)_step0").html("<p style='color:red;font-size:20px;'>安排中,請稍等...</p>").show();
+
+                //console.log(SelectedDrawer)
+                BillModel.DrugGridFid = SelectedDrawer.FID;
+                BillModel.DrawFid = SelectedDrawer.DrawFid;
+                BillModel.SysChkQty = SelectedDrawer.StockQty;
+
+                //提醒超過一日服用量
+                //let DailyTake = @(Model.bill?.DailyTake ?? 0);
+                //if (SelectedDrawer.DailyMaxTake && DailyTake > 0 && DailyTake > SelectedDrawer.DailyMaxTake) {
+                //    AlertWin("提醒！藥單號[@(Model.bill?.PrscptNo)]的服用量超過一日最高劑量")
+                //}
+
+                //打開批號輸入欄
+                //let queryBatchFid = "@(Model.stockBill.TradeType)" == "True" ? -1 : SelectedDrawer.FID;
+                //$("#BatchNoBox").load("@Url.Action("BatchNoInputer","FrontLoad")?DrugGrudFid=" + queryBatchFid, function () {
+                //    $("#takeqty_@(qDrugCode)_done").show();
+                //});
+            })
+        });
+        
+        //步驟二 完成異動量
+        let canLessThenTarget_confirm_selected;
+        $("#takeqty_@(qDrugCode)_done").click(function () {
+            $("#takeqty_@(qDrugCode)_done").attr('disabled', true);            
+            $("#@(qDrugCode)_step2").hide();
+            $("#@(qDrugCode)_step0 p").html("<p style='color:red;font-size:20px;'>關閉中...</p>").show();
+            DeleteTask("@(qDrugCode)");
+        })
+        
+    });
+    
+</script>

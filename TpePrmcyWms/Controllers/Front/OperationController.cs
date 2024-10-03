@@ -1,19 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using TpePrmcyWms.Models;
+using NuGet.Protocol;
 using TpePrmcyWms.Models.DOM;
 using TpePrmcyWms.Models.Service;
 using TpePrmcyWms.Models.Unit.Front;
-using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Security.Policy;
-using NuGet.Versioning;
-using Microsoft.VisualBasic;
-using Newtonsoft.Json.Linq;
-using System.Linq;
 
 namespace TpePrmcyWms.Controllers.Front
 {
@@ -535,5 +525,74 @@ namespace TpePrmcyWms.Controllers.Front
         }
         #endregion
 
+        #region 美沙冬領藥 MethadonTake-MSDT
+        public IActionResult MethadonTake()
+        {
+            DrugInfo? MSDdrug = _db.DrugInfo.Find(3452);
+            MethadonBill? msdBill_last = _db.MethadonBill
+                .Where(x => x.adddate < DateTime.Now.Date)
+                .OrderByDescending(x => x.adddate)
+                .FirstOrDefault();
+            MethadonBill? msdBill_today = _db.MethadonBill
+                .Where(x => x.RecordDate == DateTime.Now.Date)
+                .FirstOrDefault();
+
+            StockBill_MSD obj = new StockBill_MSD()
+            {
+                CbntFid = AtCbntFid,
+                DrugFid = MSDdrug.FID,
+                DrugCode = MSDdrug.DrugCode,
+                DrugName = MSDdrug.DrugName,
+                BillType = "MSDT",
+                TradeType = false, //減項           
+                comFid = Loginfo.User.comFid,
+                modid = Loginfo.User.Fid,
+                JobDone = false,
+
+                Last_CC = Math.Round(msdBill_last?.RetnCC ?? 0, 0),
+                Last_Weight = Math.Round(msdBill_last?.RetnWeight ?? 0, 0),
+                This_Weight = Math.Round(msdBill_today?.TakeWeight ?? 0, 0),
+                This_CC = Math.Round(msdBill_today?.TakeCC ?? 0, 0),
+                AddEmpName = Loginfo.User.Name,
+                BottleWegiht = _db.DrugPackage.Where(x => x.DrugFid == MSDdrug.FID).FirstOrDefault()?.PackageWeight - 50 ?? 400,
+            };
+
+            return View(obj);
+        }
+        #endregion
+
+        #region 美沙冬還藥 MethadonReturn-MSDR
+        public IActionResult MethadonReturn()
+        {
+            DrugInfo? MSDdrug = _db.DrugInfo.Find(3452);
+            MethadonBill? msdBill_today = _db.MethadonBill
+                .Where(x => x.RecordDate == DateTime.Now.Date)
+                .FirstOrDefault();
+
+            StockBill_MSD obj = new StockBill_MSD()
+            {
+                CbntFid = AtCbntFid,
+                DrugFid = MSDdrug.FID,
+                DrugCode = MSDdrug.DrugCode,
+                DrugName = MSDdrug.DrugName,
+                BillType = "MSDR",
+                TradeType = true, //加項
+                comFid = Loginfo.User.comFid,
+                modid = Loginfo.User.Fid,
+                JobDone = false,
+
+                Last_CC = Math.Round(msdBill_today?.TakeCC ?? 0, 0) ,
+                Last_Weight = Math.Round(msdBill_today?.TakeWeight ?? 0, 0),
+                This_Weight = Math.Round(msdBill_today?.RetnWeight ?? 0, 0),
+                This_CC = Math.Round(msdBill_today?.RetnCC ?? 0, 0),
+                AddEmpName = Loginfo.User.Name,
+                RecordDate = DateTime.Now.Date,
+                BottleWegiht = _db.DrugPackage.Where(x => x.DrugFid == MSDdrug.FID).FirstOrDefault()?.PackageWeight - 50 ?? 400,
+            };
+
+            return View(obj);
+        }
+
+        #endregion
     }
 }

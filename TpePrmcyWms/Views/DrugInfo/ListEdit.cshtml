@@ -38,10 +38,14 @@
             <label asp-for="ReplaceToDrugName" class="control-label"></label>
             <input asp-for="ReplaceToDrugName" class="form-control" list="ReplaceToDrugList" />
             <datalist id="ReplaceToDrugList">
-                @foreach (var item in DropValueList.Where(x => x.Group == "drugfullquery" && x.Value.StartsWith(Model.DrugCode.Substring(0, Model.DrugCode.Length - 3))).ToList())
+                @if (Model.DrugCode.Length > 3)
                 {
-                    <option value="@(item.Value)"> @(item.Text) </option>
+                    foreach (var item in DropValueList.Where(x => x.Group == "drugfullquery" && x.Value.StartsWith(Model.DrugCode.Substring(0, Model.DrugCode.Length - 3))).ToList())
+                    {
+                        <option value="@(item.Value)"> @(item.Text) </option>
+                    }
                 }
+                
             </datalist>
             <span asp-validation-for="ReplaceToDrugName" class="text-danger"></span>
         </div>
@@ -64,7 +68,11 @@
 		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
 		{
             <input type="button" id="QueryApi" onclick="goQueryApi()" value="同步醫院資料庫" class="CtrlBtn" />
-            <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+            @if (!string.IsNullOrEmpty(Model.DrugName))
+            {
+                <input type="button" onclick="goSubmit()" value="確認" class="CtrlBtn" />
+            }
+            
 		}
 	</div>
 </form>
@@ -76,12 +84,12 @@
 <script>
     //送出鈕
     function goSubmit() {
-        $(".btn").hide();
+        $(".ListCtrlPanel").hide();
         let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
         SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
-            $("#btn_submit").click();
+            CancelEdit();
         }, function () {
-            $(".btn").show();
+            $(".ListCtrlPanel").show();
         });
     }
     //取消鈕

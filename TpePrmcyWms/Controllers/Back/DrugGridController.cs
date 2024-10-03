@@ -53,10 +53,9 @@ namespace TpePrmcyWms.Controllers.Back
             if (!string.IsNullOrEmpty(qKeyString))
             {
                 StringComparison comp = StringComparison.OrdinalIgnoreCase;
-                List<int> CbntFids = _db.Cabinet.Where(s => (s.CbntName ?? "").Contains(qKeyString)).Select(s => s.FID).ToList();
                 List<int> drugfids = _db.DrugInfo.Where(s => (s.DrugName ?? "").Contains(qKeyString)
                         || (s.DrugCode ?? "").Contains(qKeyString)).Select(s => s.FID).ToList();
-                obj = obj.Where(x => CbntFids.Contains(x.CbntFid) || drugfids.Contains(x.DrugFid));
+                obj = obj.Where(x => drugfids.Contains(x.DrugFid));
             }
             ViewData["qSafetyStock"] = qSafetyStock;
             if (qSafetyStock == "Y")
@@ -77,8 +76,8 @@ namespace TpePrmcyWms.Controllers.Back
                 case "CbntName_desc": obj = obj.OrderByDescending(s => s.CbntName); break;
                 case "CbntName": obj = obj.OrderBy(s => s.CbntName); break;
                 case "DrawerNo_desc": obj = obj.OrderByDescending(s => s.DrawerNo); break;
-                case "DrawerNo": obj = obj.OrderBy(s => s.CbntName); break;
-                case "DrugCode_desc": obj = obj.OrderByDescending(s => s.DrawerNo); break;
+                case "DrawerNo": obj = obj.OrderBy(s => s.DrawerNo); break;
+                case "DrugCode_desc": obj = obj.OrderByDescending(s => s.DrugCode); break;
                 case "DrugCode": obj = obj.OrderBy(s => s.DrugCode); break;
                 case "DrugName_desc": obj = obj.OrderByDescending(s => s.DrugName); break;
                 case "DrugName": obj = obj.OrderBy(s => s.DrugName); break;

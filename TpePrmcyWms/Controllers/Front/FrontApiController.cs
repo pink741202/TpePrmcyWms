@@ -80,7 +80,7 @@ namespace TpePrmcyWms.Controllers.Front
                         if (s.oprState == "0") { s.ssrState = "1"; }
                         if (s.oprState == "1") { s.ssrState = "2"; }
                     }
-                    _db.UpdateRange(list);
+                    _db.SensorComuQuee.UpdateRange(list);
                     _db.SaveChanges(true);
                 }
             }
@@ -97,7 +97,7 @@ namespace TpePrmcyWms.Controllers.Front
                 try
                 {
                     SensorComuQuee up = _db.SensorComuQuee.Where(x => x.CbntFid == AtCbntFid && x.DrugCode == data.DrugCode && x.oprState != "H").First();
-                    if(up.ssrState != "1") { _db.Remove(up); _db.SaveChanges(); } //非開門狀態
+                    if(up.ssrState != "1") { _db.SensorComuQuee.Remove(up); _db.SaveChanges(); } //非開門狀態
                 }
                 catch (Exception ex) { SysBaseServ.Log(Loginfo, ex); return Json(new { code = 1, ReturnData = "error" }); }
                 return Json(new { code = 0, ReturnData = "" });
@@ -120,7 +120,7 @@ namespace TpePrmcyWms.Controllers.Front
                     
                     if (Convert.ToInt32(SysBaseServ.JsonConf("TestEnvironment:ImaginaryKioskCbntFid")) != 0) //沒kiosk
                     {
-                        _db.RemoveRange(_db.SensorComuQuee.Where(x => x.CbntFid == AtCbntFid && x.DrawFid == data.DrawFid && x.DrugCode == data.DrugCode && x.oprState == "2").ToList());
+                        _db.SensorComuQuee.RemoveRange(_db.SensorComuQuee.Where(x => x.CbntFid == AtCbntFid && x.DrawFid == data.DrawFid && x.DrugCode == data.DrugCode && x.oprState == "2").ToList());
                         _db.SaveChanges();
                     }
                 }
@@ -142,14 +142,26 @@ namespace TpePrmcyWms.Controllers.Front
                 //StockBill rec = frserv.SetStockBill(data);
                 data.moddate = DateTime.Now;
                 data.JobDone = data.Qty > 0;
-                if (data.FID == 0) { _db.StockBill.Add(data); _db.SaveChanges(); }
+                if (data.FID == 0) {
+                    data.addid = Loginfo.User.Fid;
+                    data.adddate = DateTime.Now;
+                    _db.StockBill.Add(data); 
+                    _db.SaveChanges(); 
+                }
                 else { _db.Update(data); _db.SaveChanges(); }
 
                 //更新藥單
                 if (data.TargetQty == data.Qty && data.PrscptFid != null && data.PrscptFid.Count > 0)
                 {
-                    _db.PrscptBill.Find(data.PrscptFid[0]).DoneFill = true;
-                    _db.SaveChanges();
+                    PrscptBill? rec = _db.PrscptBill.Find(data.PrscptFid[0]);
+                    if (rec != null)
+                    {
+                        rec.modid = Loginfo.User.Fid;
+                        rec.moddate = DateTime.Now;
+                        rec.DoneFill = true;
+                        _db.SaveChanges();
+                    }
+                    
                 }
                 //空瓶放入分次,自動新增下一筆
                 if(data.BillType == "BRT" && data.TargetQty != data.Qty)
@@ -162,6 +174,8 @@ namespace TpePrmcyWms.Controllers.Front
                     add.SysChkQty = 0;
                     add.UserChk1Qty = null;
                     add.UserChk2Qty = null;
+                    add.addid = Loginfo.User.Fid;
+                    add.adddate = DateTime.Now;
                     _db.StockBill.Add(add);
                     _db.SaveChanges(true);
                 }
@@ -214,17 +228,23 @@ namespace TpePrmcyWms.Controllers.Front
                 //decimal? unitconvert = useGrid?.UnitConvert ?? null;
                 //if (unitconvert != null) { data.stockBill.TargetQty = data.stockBill.TargetQty * unitconvert ?? 1; data.stockBill.Qty = data.stockBill.TargetQty; }
 
-                //庫存異動單及藥單存單                
+                //庫存異動單及藥單存單           
                 data.stockBill.moddate = dt;
                 data.stockBill.JobDone = true;
 
-                if (data.stockBill.FID == 0) { _db.StockBill.Add(data.stockBill); _db.SaveChanges(); }
-                else { _db.Update(data.stockBill); _db.SaveChanges(); }
+                if (data.stockBill.FID == 0) { 
+                    data.stockBill.adddate = dt;
+                    data.stockBill.addid = Loginfo.User.Fid;
+                    _db.StockBill.Add(data.stockBill); 
+                    _db.SaveChanges(); }
+                else { _db.StockBill.Update(data.stockBill); _db.SaveChanges(); }
                 for (int i = 0; i < data.bills.Count; i++)
                 {
                     if (!string.IsNullOrEmpty(data.bills[i].msg)) { continue; }
                     data.bills[i].DoneFill = true;
-                    _db.Update(data.bills[i]);
+                    data.bills[i].modid = Loginfo.User.Fid;
+                    data.bills[i].moddate = dt;
+                    _db.PrscptBill.Update(data.bills[i]);
                     _db.SaveChanges();                    
                 }
 
@@ -251,6 +271,8 @@ namespace TpePrmcyWms.Controllers.Front
                             JobDone = false,
                             DrugCode = data.DrugCode + "_b",
                             TargetQty = data.stockBill.TargetQty,
+                            adddate = DateTime.Now,
+                            addid = Loginfo.User.Fid,
                         };
                         _db.StockBill.Add(add);
                         _db.SaveChanges(true);
@@ -345,6 +367,8 @@ namespace TpePrmcyWms.Controllers.Front
                         for (int i = 0; i < data.TargetQty; i++)
                         {
                             StockBill_Prscpt add = JsonConvert.DeserializeObject<StockBill_Prscpt>(JsonConvert.SerializeObject(data));
+                            add.addid = Loginfo.User.Fid;
+                            add.adddate = DateTime.Now;
                             add.Qty = 1;
                             _db.StockBill.Add(add);
                             _db.SaveChanges();
@@ -355,6 +379,8 @@ namespace TpePrmcyWms.Controllers.Front
                     //退藥,直接存,然後自動沖借藥量
                     if (data.TradeType && !data.DrugCode.Contains("_b"))
                     {
+                        data.addid = Loginfo.User.Fid;
+                        data.adddate = DateTime.Now;
                         _db.StockBill.Add(data);
                         _db.SaveChanges();
                         frserv.SaveOffsetBill(data);
@@ -422,7 +448,9 @@ namespace TpePrmcyWms.Controllers.Front
                 if (prscpt != null)
                 {
                     prscpt.DoneFill = false;
-                    _db.Update(prscpt);
+                    prscpt.modid = Loginfo.User.Fid;
+                    prscpt.moddate = DateTime.Now;
+                    _db.PrscptBill.Update(prscpt);
                     _db.SaveChanges();
                 }
                 
@@ -448,6 +476,8 @@ namespace TpePrmcyWms.Controllers.Front
             {
                 FrontendService frserv = new FrontendService(data.CbntFid ?? 0, Loginfo);
                 data.DrugGridFid = frserv.getDrugGridFid(data.DrawFid ?? 0, data.DrugCode);
+                data.addid = Loginfo.User.Fid;
+                data.adddate = DateTime.Now;
                 data.moddate = DateTime.Now;
                 data.JobDone = true;
 
@@ -473,7 +503,9 @@ namespace TpePrmcyWms.Controllers.Front
             try
             {
                 decimal qty = data.Qty;
-                data.DrugGridFid = frserv.getDrugGridFid(data.DrawFid ?? 0, data.DrugCode); 
+                data.DrugGridFid = frserv.getDrugGridFid(data.DrawFid ?? 0, data.DrugCode);
+                data.addid = Loginfo.User.Fid;
+                data.adddate = DateTime.Now;
                 data.moddate = dt;
                 data.JobDone = true;
                 //查原藥藥格,不須還空瓶的庫存異動,要把數量改為0
@@ -482,7 +514,7 @@ namespace TpePrmcyWms.Controllers.Front
                     data.Qty = 0; 
                     data.TargetQty = 0; 
                 }
-                _db.Add(data);
+                _db.StockBill.Add(data);
                 _db.SaveChanges();
 
                 //更新庫存 不管是拿空瓶還是只拿單,都要扣藥格數量(為了算常備量)
@@ -503,9 +535,11 @@ namespace TpePrmcyWms.Controllers.Front
                 data.DrugGridFid = grid.FID;
                 data.TargetQty = qty;
                 data.Qty = 0;
+                data.addid = Loginfo.User.Fid;
+                data.adddate = DateTime.Now;
                 data.moddate = null;
                 data.JobDone = false;
-                _db.Add(data);
+                _db.StockBill.Add(data);
                 _db.SaveChanges();
             }
             catch (Exception ex)
@@ -515,6 +549,70 @@ namespace TpePrmcyWms.Controllers.Front
             }
 
             return Json(new { code = 0, returnData = returnFid });
+        }
+        [HttpPost]
+        public JsonResult StockBillMsdSave([FromBody] StockBill_MSD data)
+        {
+            try
+            {
+                FrontendService frserv = new FrontendService(data.CbntFid ?? 0, Loginfo);
+                data.DrugGridFid = data.DrugGridFid == 0 ? frserv.getDrugGridFid(data.DrawFid ?? 0, data.DrugCode) : data.DrugGridFid;
+                data.moddate = DateTime.Now;
+                data.JobDone = data.Qty > 0;
+                if (data.FID == 0)
+                {
+                    data.addid = Loginfo.User.Fid;
+                    data.adddate = DateTime.Now;
+                    _db.StockBill.Add(data);
+                    _db.SaveChanges();
+                }
+                else { _db.Update(data); _db.SaveChanges(); }
+                
+                //存美沙冬表單
+                MethadonBill? bill = _db.MethadonBill.Where(x=>x.RecordDate == DateTime.Now.Date).FirstOrDefault();
+                if (bill == null)
+                {
+                    bill = new MethadonBill();
+                }
+                if (data.BillType == "MSDT") //領
+                {
+                    bill.TakeTime = DateTime.Now;
+                    bill.TakeEmpFid = Loginfo.User.Fid;
+                    bill.TakeSuperFid = data.superFid;
+                    bill.TakeWeight = data.This_Weight;
+                    bill.TakeCC = data.This_CC;
+                    bill.adddate = data.adddate ?? DateTime.Now;
+                }
+                if (data.BillType == "MSDR") //還
+                {
+                    bill.RetnTime = DateTime.Now;
+                    bill.RetnEmpFid = Loginfo.User.Fid;
+                    bill.RetnSuperFid = data.superFid;
+                    bill.RetnWeight = data.This_Weight;
+                    bill.RetnCC = data.This_CC;
+                    bill.moddate = data.adddate ?? DateTime.Now;
+
+                    bill.UsedPatientCnt = data.UsedPatientCnt ?? 0;
+                    bill.UsedCC = data.UsedCC;
+                    bill.SysRemainCC = data.SysChkQty;
+                    bill.TakeRemainCC = data.UserChk1Qty;
+                    bill.StockTakeBalance = data.StockTakeBalance;
+                }
+                if(bill.FID == 0) { _db.MethadonBill.Add(bill); }
+                else { _db.MethadonBill.Update(bill); }
+                _db.SaveChanges();
+
+                //Offset更新對應表及庫存
+                frserv.AfterStocking(data);
+
+            }
+            catch (Exception ex)
+            {
+                SysBaseServ.Log(Loginfo, ex);
+                return Json(new { code = "Err", returnData = "存檔錯誤！" });
+            }
+
+            return Json(new { code = 0, returnData = "存檔完成！" });
         }
         #endregion
 
@@ -565,11 +663,11 @@ namespace TpePrmcyWms.Controllers.Front
                 vobj.moddate = DateTime.Now;
                 if (vobj.FID == 0)
                 {
-                    _db.Add(vobj);
+                    _db.VaxSkd.Add(vobj);
                 }
                 else
                 {
-                    _db.Update(vobj);
+                    _db.VaxSkd.Update(vobj);
                 }
                 _db.SaveChanges();
                 return Json(new { code = "0", returnData = "" });
@@ -608,11 +706,11 @@ namespace TpePrmcyWms.Controllers.Front
                 vobj.moddate = DateTime.Now;
                 if (vobj.FID == 0)
                 {
-                    _db.Add(vobj);
+                    _db.VaxSkdDtl.Add(vobj);
                 }
                 else
                 {
-                    _db.Update(vobj);
+                    _db.VaxSkdDtl.Update(vobj);
                 }
                 _db.SaveChanges();
                 return Json(new { code = "0", returnData = "" });

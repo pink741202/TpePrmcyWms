@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Linq;
 using TpePrmcyWms.Models.DOM;
 using TpePrmcyWms.Models.Service;
 using TpePrmcyWms.Models.Unit;
@@ -25,24 +26,34 @@ namespace TpePrmcyWms.Controllers.Back
         #region CRUD
         [ActionName("List")]
         public async Task<IActionResult> List(int? pageNum, string sortOrder, string qKeyString
-            , string qSensorType)
+            , string qSensorType, int qCabinet, string qNotWork)
         {
-            IQueryable<SensorDevice> obj = _db.SensorDevice;
-
             #region 查詢
-            ViewBag.qKeyString = qKeyString;
-            if (!string.IsNullOrEmpty(qKeyString))
-            {
-                string qKeyStringUpper = qKeyString.ToUpper();                
-                obj = obj.Where(x => x.TargetTable.ToUpper() == qKeyStringUpper);
-            }
+            qCabinet = qCabinet == 0 ? Loginfo.CbntAuth[0] : qCabinet;
+            ViewBag.qCabinet = qCabinet.ToString();
+
+            //查出同櫃的抽屜id
+            List<int> gridfids = _db.DrugGrid.Where(x => x.CbntFid == qCabinet).Select(x=>x.FID).ToList();
+            List<int> drawfids = _db.Drawers.Where(x => x.CbntFid == qCabinet).Select(x=>x.FID).ToList();
+
+            IQueryable<SensorDevice> obj = from ssr in _db.SensorDevice
+                                           where (ssr.TargetTable == "Drawer" && drawfids.Contains(ssr.TargetObjFid ?? 0))
+                                            || (ssr.TargetTable == "DrugGrid" && gridfids.Contains(ssr.TargetObjFid ?? 0))
+                                           select ssr;
+            
             ViewBag.qSensorType = qSensorType;
             if (qSensorType != null)
             {
                 string qSensorTypeUpper = qSensorType.ToUpper();
                 obj = obj.Where(x => x.SensorType.ToUpper() == qSensorTypeUpper);
             }
-            
+
+            ViewBag.qNotWork = qNotWork;
+            if (!string.IsNullOrEmpty(qNotWork))
+            {
+                obj = obj.Where(x => (qNotWork == "Y" ? !string.IsNullOrEmpty(x.NotWork) : string.IsNullOrEmpty(x.NotWork)));
+            }
+
             #endregion
 
             #region 排序            
@@ -131,6 +142,14 @@ namespace TpePrmcyWms.Controllers.Back
             
             if (vobj.CbntFid == 0) { ModelState.AddModelError(nameof(vobj.CbntFid), "請選擇藥櫃!"); }
             if (vobj.DrawFid == 0) { ModelState.AddModelError(nameof(vobj.CbntFid), "請選擇藥格!"); }
+
+            if (!string.IsNullOrEmpty(vobj.SensorVersion))
+            {
+                if(_db.ParamOption.Where(x => x.GroupCode == $"SsrVer_{vobj.SensorType}" && x.OptionCode == vobj.SensorVersion).Count() == 0)
+                {
+                    ModelState.AddModelError(nameof(vobj.SensorVersion), "請選擇正確的設備版本!");
+                }
+            }
             
             if (_db.SensorDevice.Any(i => i.TargetTable == vobj.TargetTable && i.TargetObjFid == vobj.TargetObjFid
                     && i.SensorType == vobj.SensorType && i.SensorNo == vobj.SensorNo

@@ -1,0 +1,314 @@
+﻿@using TpePrmcyWms.Models.Service;
+@model TpePrmcyWms.Models.Unit.Front.StockBill_MSD;
+@using Newtonsoft.Json;
+@{
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { $"drugfullqueryincabinet:{Model.CbntFid}:replacedrug" });
+    //F;A0001;1130501;OGLUC4;Glucophage 500mg TAB (Metformin);0;10110001;K01063;1;領藥一;5;支;開藥人;0;1;1;1
+}
+
+<script src="~/js/CbntSensorCommunicator.js"></script>
+
+<style>
+    .col2-innerArea{
+        width: 100%;
+        display: grid;
+        grid-template-columns: 320px 400px;
+        column-gap: 10px;
+
+    }
+    .col2-innerArea table{
+        width: 100%;
+    }
+
+</style>
+
+<div class="MainFrame">
+    <div class="InputArea col2">
+
+        <div class="col2-innerArea">
+            <div class="col" style="border-right:3px dashed gray;">
+                <div class="form-group ">
+                    <label asp-for="RecordDate" class="control-label"></label>
+                    <input asp-for="RecordDate" class="form-control w3-right-align" type="date" disabled />
+                </div>
+                <div class="form-group ">
+                    <label asp-for="AddEmpName" class="control-label"></label>
+                    <input asp-for="AddEmpName" class="form-control w3-right-align" disabled />
+                </div>
+                <div class="form-group">
+                    <label asp-for="SuperEmpName" class="control-label"></label>
+                    <input asp-for="SuperEmpName" class="form-control w3-right-align" disabled />
+                    <input type="button" class="" id="btn_SuperEmpScanCard" onclick="SuperEmpScanCard()" value="護理師刷卡" />
+                    <img id="SuperEmpStemp" src="" width="100" height="100" class="Hidden">
+                </div>
+
+                <div class="form-group btnbox">
+                    <input type="button" class="widder1 Hidden" id="btn_DoneSubmit" onclick="SaveStoreBillAndDone()" value="完成" />
+                </div>
+            </div>
+            <div class="col">
+                <table>
+                    <tr>
+                        <td colspan="2" align="center">
+                            <div style="width:100%;background-color:DarkSeaGreen;">前日還藥紀錄</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="50%">
+                            <div class="form-group">
+                                <label asp-for="Last_Weight" class="control-label"></label>
+                                <input asp-for="Last_Weight" class="form-control w3-right-align" disabled />
+                            </div>
+                        </td>
+                        <td width="50%">
+                            <div class="form-group">
+                                <label asp-for="Last_CC" class="control-label"></label>
+                                <input asp-for="Last_CC" class="form-control w3-right-align" disabled />
+                            </div>
+
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td colspan="2" align="center">
+                            <div style="width:100%;background-color:DarkSeaGreen;font-weight:bold;">今日領藥</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="50%">
+                            <div class="form-group">
+                                <label asp-for="This_Weight" class="control-label"></label>
+                                <input asp-for="This_Weight" class="form-control w3-right-align" disabled />
+                                <input id="Weight" name="Weight" class="form-control w3-right-align" disabled value="0"/>
+                            </div>
+                        </td>
+                        <td width="50%">
+                            <div class="form-group">
+                                <label asp-for="This_CC" class="control-label">體積(cc)</label>
+                                <input asp-for="This_CC" class="form-control w3-right-align" disabled />
+                                <input asp-for="Qty" class="form-control w3-right-align" disabled />
+                            </div>
+
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td colspan="2" style="align-items:center; height:100px;">
+                            <input type="button" class="widder1" id="btn_AddingTask" onclick="AddingTask('manu')" value="開門秤重" />
+                        </td>
+                    </tr>
+                </table>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="TaskArea col2" id="TaskArea"> </div>
+    
+</div>
+
+
+<script>
+    var BillModel = @Html.Raw(JsonConvert.SerializeObject(Model)); //新增用
+    var DrawerTaskConfig = { //開櫃子視窗的客製化設定
+        skipStep1: true, //自動按第一個櫃格
+        skipStep1When1: false, //只有一個格子,自動按下
+        hideBtnStorage: true, //不用呈現藥格
+        canLessThenTarget: true, //可少於目標量,分次
+        canLessThenTarget_confirm: "", //可少於目標量,分次的確認訊息
+        ignrStockQty: false, //有勾不扣庫存
+    }
+
+    //#region 感應器回傳的介面更新
+    //只能用Cmutr,因固定寫在js
+    var Cmutr = new CbntSensorCommunicator();
+    Cmutr.UpdateCallBack = function (re) {
+        //console.log(JSON.stringify(re))
+        //確認是否存在,不在就先刪了
+        if (!$("#task_" + re.drugCode).length) {
+            HideTask(re.drugCode);
+        }
+
+        //磅秤更新
+        if (re.ssrQty && re.ssrState != "2" && re.oprState != "2") {
+            $("#takeweight_" + re.drugCode).val(re.ssrWeight);
+            $("#takeqty_" + re.drugCode).val(re.ssrQty);
+            $("#takeqty_" + re.drugCode).addClass("greenScanning");
+            if (parseInt(re.ssrWeight) < BillModel.BottleWegiht && $("#takeqty_" + BillModel.DrugCode + "_next").attr('disabled') == true){
+                $("#takeqty_" + BillModel.DrugCode + "_next").attr('disabled', false);
+            }
+            setTimeout(function () { $("#takeqty_" + re.drugCode).stop(true, false).removeClass("greenScanning"); }, 600);
+        }
+        //門狀態更新
+        switch (re.ssrState) {
+            case "1":
+                $("#" + re.drugCode + "_close").hide();
+                $("#" + re.drugCode + "_doorOpen").show();
+                break;
+            case "2":
+                $("#" + re.drugCode + "_close").hide();
+                $("#" + re.drugCode + "_doorOpen").hide();
+        }
+        if (re.ssrState != "0" && re.oprState != "0") {
+            $("#takeqty_" + re.drugCode + "_done").show();
+        }
+        //LED
+        if (re.ledColor != "") {            
+            $("#task_" + re.drugCode + " .OperDrugInStoreArea").addClass("TaskColor_" + re.ledColor);
+            $("#" + re.drugCode + "_OpenLedColor").css("background-color", re.ledColor).css("color", "white");
+        }
+        //已開門
+        if (re.ssrState == "1" && re.oprState == "0") {
+            SetState(re.drugCode, "1");
+            $("#" + re.drugCode + "_step0").hide(1000);
+            $("#" + re.drugCode + "_step2").show();
+        }
+    }
+    Cmutr.DeleteCallBack = function (drugCode) {
+        $("#" + drugCode + "_step1").hide();
+        $("#" + drugCode + "_step2").hide();
+        $("#" + drugCode + "_step0").html("<p style='color:red;font-size:24px;'>工作已完成，２秒後自動關閉！</p>").show();
+        setTimeout(function () {
+            $("#task_" + drugCode).remove();
+            $("#btn_AddingTask").show();
+            if ($("#SuperEmpName").val() == "") { $("#btn_SuperEmpScanCard").show(); }
+            $("#btn_DoneSubmit").show();
+        }, 2000);
+    }
+    Cmutr.AddQuReact = function (re) {
+        if ($("#" + re.DrugCode + "_step1").length == 0) { return; }
+        if (re.returnresult) { $("#" + re.DrugCode + "_step0").hide(); $("#" + re.DrugCode + "_step1").show(); }
+        else { $("#" + re.DrugCode + "_step0").html("<p style='color:red;font-size:24px;'>新增失敗</p>"); }
+    }
+
+    //連動有增加數量時,不得離開
+    Cmutr.TikCallBack = function () {
+        let Weight = parseInt($("#Weight").val());
+        if (Weight > 0 && Cmutr.QuHadDrug.length == 0) { SensorRunning(); }
+    }
+    
+    //#endregion
+
+    Cmutr.Running();
+
+    
+    $(document).ready(function () {
+        
+    });
+
+    //#region 新增StockBill並加入排程
+    function AddingTask(calltype) {
+        $("#btn_AddingTask").hide();
+        $("#btn_SuperEmpScanCard").hide();
+        $("#btn_DoneSubmit").hide();
+        let scanarry = [];
+        let qDrugCode = "@(Model.DrugCode)";
+        if (calltype == "scan") { //掃瞄啟動
+            let scantext = $("#Scantext").val();
+            if (scantext == "" || !scantext) { return; }
+            scanarry = scantext.split(";");
+            if (scanarry.length != 17) { AlertWin("掃瞄格式錯誤！"); $("#Scantext").val(""); return; }
+            BillModel.Scantext = scantext;
+            qDrugCode = scanarry[3];
+            $("#Scantext").val("");
+        }
+        if (calltype == "manu") { //手動輸入
+            //判斷排程數量
+            if (Cmutr.QuHadDrug.length > 1) { 
+                AlertWin("已在進行中，請稍後再開門秤重！"); 
+                $("#btn_AddingTask").show();
+                if ($("#SuperEmpName").val() == "") { $("#btn_SuperEmpScanCard").show(); }
+                $("#btn_DoneSubmit").show();
+                return; 
+            }
+
+            //Load資訊並呈現排程
+            let finalDrugCode = "@(Model.DrugCode)";
+            $("#TaskArea").prepend("<div class=\'taskbox\' id=\'task_" + finalDrugCode + "\'>Loading..." + finalDrugCode + "</div>");
+            $("#task_" + finalDrugCode).load("@Url.Action("DrawerTask_MSD","FrontLoad")"
+                , { vobj: BillModel }
+                , function () { Cmutr.AddQu(finalDrugCode, "@(Model.BillType)"); }
+            )
+        }
+
+    }
+    //#endregion
+        
+    //#region 存檔
+    function SaveStoreBillAndDone() {
+        if (parseInt($("#Qty").val()) <= 0) { AlertWin("無異動數量!"); return; }
+        if ($("#AddEmpName").val() == "") { AlertWin("無執行藥師資訊!"); return; }
+        if ($("#SuperEmpName").val() == "" || !(BillModel.superFid > 0)) { AlertWin("護理師未刷卡確認!"); return; }
+
+        BillModel.Qty = parseInt($("#Qty").val());
+        BillModel.TargetQty = parseInt($("#Weight").val());
+        BillModel.SysChkQty = parseInt(BillModel.SysChkQty) - parseInt($("#Qty").val());        
+        BillModel.This_Weight = parseInt($("#This_Weight").val());
+        BillModel.This_CC = parseInt($("#This_CC").val());
+        BillModel.RecordDate = $("#RecordDate").val();
+        BillModel.SuperEmpName = $("#SuperEmpName").val();
+
+        console.log(BillModel)
+        let goPost = new AjaxJsonPostor("@Url.Action("StockBillMsdSave","FrontApi")", BillModel);
+        goPost.SuccessCallback = function (result) {
+            if (result.code == 0) {
+                AlertWin(result.returnData);
+                setTimeout(function () { location.replace("@Url.Action("logout","Login")"); }, 1000);               
+            }
+            else { AlertWin(result.returnData); }
+        }
+        goPost.Post();
+    }
+    //#endregion
+
+    //#region 刷卡
+    function SuperEmpScanCard(selector_EmpFid, selector_PicName) {
+        $("#overlay-content-text").load("@Url.Action("EmpCardScanInterface","FrontLoad")");
+        OpenAlertWin();
+    }
+    function ScanCardResultCalling(responseObj){
+        $("#btn_SuperEmpScanCard").hide();
+        console.log(responseObj);
+        BillModel.superFid = responseObj.Fid;
+        $("#SuperEmpName").val(responseObj.name);
+        //$("#SuperEmpStemp").attr('src', '/Images/EmpStemp/' + responseObj.emp_no + '.png').show();
+        $("#SuperEmpName").css('background', "url(../../Images/EmpStemp/" + responseObj.emp_no + ".png) no-repeat left top")
+            .css("background-size", "32px");
+    }
+
+    //#endregion
+    
+    //#region 子介面呼叫 客製
+    //確定重量
+    function AddingWeightAndQty(){
+        let takew = parseInt($("#takeweight_" + BillModel.DrugCode).val());
+        let takeq = parseInt($("#takeqty_" + BillModel.DrugCode).val());
+        
+        if (takew < BillModel.BottleWegiht) { return; }
+        $("#takeqty_" + BillModel.DrugCode + "_next").attr('disabled', true).css("background-color", "gray");
+        let Weight = parseInt($("#Weight").val());
+        let Qty = parseInt($("#Qty").val());
+        let This_Weight = parseInt($("#This_Weight").val());
+        let This_CC = parseInt($("#This_CC").val());
+        
+        $("#This_Weight").val(This_Weight + takew);
+        $("#This_CC").val(This_CC + takeq);
+        $("#Weight").val(Weight + takew);
+        $("#Qty").val(Qty + takeq);
+    }
+
+    //沒連動磅秤時,手動重量用
+    function replaceScaleTest(){
+        $("#takeqty_" + BillModel.DrugCode).val(parseInt($("#takeweight_" + BillModel.DrugCode).val()) - 900);
+        
+        if (parseInt($("#takeweight_" + BillModel.DrugCode).val()) < parseInt(BillModel.BottleWegiht)
+            && $("#takeqty_" + BillModel.DrugCode + "_next").attr('disabled') == 'disabled') {
+            $("#takeqty_" + BillModel.DrugCode + "_next").attr('disabled', false).css("background-color", "forestgreen");
+        }
+    }
+
+    //#endregion
+
+
+</script>

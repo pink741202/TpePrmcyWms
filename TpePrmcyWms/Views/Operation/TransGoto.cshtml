@@ -76,7 +76,7 @@
                 <td colspan="2" width="50%">
                     <div class="form-group">
                         <label asp-for="TransGoBill.TargetQty" class="control-label"></label>
-                        <input asp-for="TransGoBill.TargetQty" class="form-control w3-right-align" type="number" />
+                        <input asp-for="TransGoBill.TargetQty" class="form-control w3-right-align" onkeyup="this.value=this.value.replace(/\D/g,'').substring(this.value.length-5)" value="0" />
                     </div>
                 </td>
             </tr>

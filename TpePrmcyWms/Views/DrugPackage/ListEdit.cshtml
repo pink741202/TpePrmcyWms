@@ -5,9 +5,10 @@
     Layout = null;
     Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
     List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "drugfullquery" });
+    string headtitle = !string.IsNullOrEmpty(LblMapValues["DrugFid"]) ? $"{LblMapValues["DrugFid"].Substring(0, 30)}... {Model.UnitQty}{Model.UnitTitle}" : "";
 }
 <div id="CancelEdit" onclick="CancelEdit()">✘</div>
-<h4>@(LblMapValues["DrugFid"].Substring(0,30))... @(Model.UnitQty) @(Model.UnitTitle)</h4>
+<h4>@(headtitle)</h4>
 <form name="form1" id="form1" asp-action="ListEdit">
     <div class="EditPage">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -78,12 +79,12 @@
 <script>
     //送出鈕
     function goSubmit() {
-        $(".btn").hide();
+        $(".ListCtrlPanel").hide();
         let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
         SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
-            $("#btn_submit").click();
+            CancelEdit();
         }, function () {
-            $(".btn").show();
+            $(".ListCtrlPanel").show();
         });
     }
     //取消鈕

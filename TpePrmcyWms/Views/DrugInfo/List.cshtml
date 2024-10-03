@@ -11,7 +11,7 @@
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
             <div class="form-actions no-color">
-                藥品代碼 / 中英名稱：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" />
+                藥品代碼 / 名稱：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" />
                 <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
                 <a asp-action="List">清除</a>
             </div>
@@ -127,7 +127,7 @@
     function goQueryApi() {     
         let qstring = $("#DrugCode").val();
         if (qstring == "") { AlertWin("請輸入藥品代碼"); return false;}
-        $(".EditPage .btn").hide();
+        $(".ListCtrlPanel").hide();
         let Poster = new AjaxJsonPostor("@Url.Action("ListSyncHsptlApi")", qstring);
         Poster.SuccessCallback = function (result) {
             //console.log(JSON.stringify(result))
@@ -138,11 +138,12 @@
             }
             else {
                 AlertWin(result.message);
+                $(".ListCtrlPanel").show();
             }
         }
         Poster.ErrorCallback = function () {
             AlertWin("送出失敗");
-            $(".EditPage .btn").show();
+            $(".ListCtrlPanel").show();
         }
         Poster.Post();
     }

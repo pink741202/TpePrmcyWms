@@ -88,7 +88,7 @@ namespace TpePrmcyWms.Models.Unit.Report
         public DateTime? PrscptDate { get; set; }
 
         [Display(Name = "醫令序號")]
-        public string? OrderSeq { get; set; } = "";
+        public decimal? OrderSeq { get; set; }
 
         [Display(Name = "管制藥等級")]
         public string? CtrlDrugGrand { get; set; } = "";

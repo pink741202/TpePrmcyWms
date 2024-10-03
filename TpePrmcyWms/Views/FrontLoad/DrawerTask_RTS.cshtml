@@ -161,7 +161,7 @@
 
                 //打開批號輸入欄
                 let queryBatchFid = -1;
-                $("#BatchNoBox").load("@Url.Action("BatchNoInputer","FrontLoad")?DrugGrudFid=" + queryBatchFid, function () {
+                $("#BatchNoBox").load("@Url.Action("BatchNoInputer", "FrontLoad")?DrugGridFid=" + queryBatchFid, function () {
                     $("#takeqty_@(qDrugCode)_done").show();
                 });
             })
@@ -224,6 +224,7 @@
         $("#stocktake_@(qDrugCode)_done").click(function () {
             $("#takeqty_@(qDrugCode)_done").attr('disabled', true);
             if ($("#stocktake_@(qDrugCode)").val() == "") {
+                AlertWin("請輸入盤點數量！");
                 $("#takeqty_@(qDrugCode)_done").attr('disabled', false);
                 return;
             }

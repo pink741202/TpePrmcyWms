@@ -1,11 +1,10 @@
-﻿namespace TpePrmcyWms.Models.Unit
-{
-    public class ResponObj<T>
-    {
-        public string code { get; set; } = "";
-        public string message { get; set; } = "";
-        public T? returnData { get; set; }
+﻿using ShareLibrary.Models.Unit;
+using System;
 
+namespace TpePrmcyWms.Models.Unit
+{
+    public class ResponObj<T> : ResponObject<T> 
+    {
         public ResponObj() { }
         public ResponObj(string code, T data)
         {

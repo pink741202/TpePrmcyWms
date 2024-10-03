@@ -6,9 +6,10 @@
     Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
     List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "cabinet", "drawernosub", "drugfullquery" });
     List<SelectListGroup> CbntGroup = DropValueList.Where(x => x.Group == "cabinet").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
+    string displayNameTitle = Model.FID > 0 ? (LblMapValues["DrugFid"].Length > 20 ? LblMapValues["DrugFid"].Substring(0, 20) : LblMapValues["DrugFid"]) : "";
 }
 <div id="CancelEdit" onclick="CancelEdit()">✘</div>
-<h4>@(string.IsNullOrEmpty(Model.DrugName) ? "" : $"{Model.CbntName} > {LblMapValues["DrugFid"].Substring(0, 20)}...")</h4>
+<h4>@(displayNameTitle)</h4>
 <form name="form1" id="form1" asp-action="ListEdit">
     <div class="EditPage">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -81,6 +82,11 @@
             <span asp-validation-for="BatchActive" class="text-danger"></span>
         </div>
         <div class="form-group">
+            <label asp-for="NearExpiryAlert" class="control-label"></label>
+            <input asp-for="NearExpiryAlert" class="form-control" type="number" />
+            <span asp-validation-for="NearExpiryAlert" class="text-danger"></span>
+        </div>
+        <div class="form-group">
             <label asp-for="DailyMaxTake" class="control-label"></label>
             <input asp-for="DailyMaxTake" class="form-control" type="number" />
             <span asp-validation-for="DailyMaxTake" class="text-danger"></span>
@@ -97,7 +103,7 @@
         </div>
         <div class="form-group">
             <label asp-for="OffsetCbntFid" class="control-label"></label>
-            <select name="OffsetCbntFid" id="OffsetCbntFid" class="form-control"
+            <select name="OffsetCbntFid" id="OffsetCbntFid" class="form-control" disabled
                     asp-items="@(DropValueList.Where(x=>x.Group=="cabinet")
                     .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.OffsetCbntFid.ToString() }))">
                 <option value="0">▼請選擇</option>
@@ -106,7 +112,7 @@
         </div>
         <div class="form-group">
             <label asp-for="OffsetDrawFid" class="control-label"></label>
-            <select name="OffsetDrawFid" id="OffsetDrawFid" class="form-control"
+            <select name="OffsetDrawFid" id="OffsetDrawFid" class="form-control" disabled
                     asp-items="@(DropValueList.Where(x=>x.Group=="drawernosub")
                     .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==Model.OffsetDrawFid.ToString(), Group=CbntGroup.Where(x=>x.Name==s.UpGroup).First() }))">
                 <option value="0">▼請選擇</option>
@@ -115,7 +121,7 @@
         </div>
         <div class="form-group">
             <label asp-for="ReturnEmptyBottle" class="control-label">需還空瓶(借還藥用)</label>
-            @Html.CheckBox("ReturnEmptyBottle", Model.ReturnEmptyBottle??false, new { @class = "form-check-input form-control"})
+            @Html.CheckBox("ReturnEmptyBottle", Model.ReturnEmptyBottle??false, new { @class = "form-check-input form-control", @disabled = "disabled"})
             <span asp-validation-for="ReturnEmptyBottle" class="text-danger"></span>
         </div>
         
@@ -145,12 +151,12 @@
 <script>
     //送出鈕
     function goSubmit() {
-        $(".btn").hide();
+        $(".ListCtrlPanel").hide();
         let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
         SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
-            $("#btn_submit").click();
+            CancelEdit();
         }, function () {
-            $(".btn").show();
+            $(".ListCtrlPanel").show();
         });
     }
     //取消鈕

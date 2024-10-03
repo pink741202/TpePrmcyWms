@@ -1,4 +1,4 @@
-﻿@model PaginatedList<TpePrmcyWms.Models.DOM.StockBill>
+﻿@model PaginatedList<TpePrmcyWms.Models.Unit.Report.StockingLog>
 @using TpePrmcyWms.Models.Unit.Back
 @using TpePrmcyWms.Models.Service
 @using Newtonsoft.Json;
@@ -12,7 +12,9 @@
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
             <div class="form-actions no-color">
-                藥品代碼 / 中英名稱：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" />
+                藥櫃ID / 藥櫃：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" />
+                時間(起<input type="date" name="qDate1" value="@(ViewData["qDate1"])">
+                ~迄<input type="date" name="qDate2" value="@(ViewData["qDate2"])">)
                 <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
                 <input type="button" id="btn_submit2" value="下載" class="btn btn_InputSubmit" onclick="submitDownload()" /> |
                 
@@ -26,23 +28,26 @@
                 <tr>
                     <th width="20%">
                         <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=DrugCode')">
-                            @Html.DisplayNameFor(model => model[0].FID)
+                            @Html.DisplayNameFor(model => model[0].operTime)
                         </div>
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].billType)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].billTypeName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].empName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].empNo)
                     </th>
                     <th>
                         @Html.DisplayNameFor(model => model[0].CbntFid)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].DrugCode)
-                    </th>
-                    <th>
-                        @Html.DisplayNameFor(model => model[0].Qty)
-                    </th>
-                    <th>
-                        @Html.DisplayNameFor(model => model[0].TargetQty)
-                    </th>
-                    <th>
-                        @Html.DisplayNameFor(model => model[0].BillType)
+                        @Html.DisplayNameFor(model => model[0].CbntName)
                     </th>
 @*                     <th class="Wd100">
                         贈藥
@@ -63,22 +68,25 @@
                 {
                     <tr>
                         <td width="20%">
-                            @Html.DisplayFor(modelItem => item.FID)
+                            @Html.DisplayFor(modelItem => item.operTime)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.billType)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.billTypeName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.empName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.empNo)
                         </td>
                         <td>
                             @Html.DisplayFor(modelItem => item.CbntFid)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.DrugCode)
-                        </td>
-                        <td>
-                            @Html.DisplayFor(modelItem => item.Qty)
-                        </td>
-                        <td>
-                            @Html.DisplayFor(modelItem => item.TargetQty)
-                        </td>
-                        <td>
-                            @Html.DisplayFor(modelItem => item.BillType)
+                            @Html.DisplayFor(modelItem => item.CbntName)
                         </td>
 @*                         <td class="Wd100">
                             <span class="CtrlBtn " onclick="EditFreeTrial(@item.FID)">✔</span>
@@ -160,24 +168,37 @@
     }
 
     function submitDownload() {
+        const qKeyString = $("[name=qKeyString]").val();
+        const qDate1 = $("[name=qDate1]").val();
+        const qDate2 = $("[name=qDate2]").val();
         fetch('@Url.Action("ReportDownload", "ReportGenerate")', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ orderCode: 123 }) // 這裡是你的 orderCode
+            body: JSON.stringify({
+                qKeyString: qKeyString,
+                qDate1: qDate1 || null,
+                qDate2: qDate2 || null,
+
+            }) // 這裡是你的 orderCode
         })
             .then(response => {
                 if (response.ok) {
                     return response.blob(); // 期待文件下載
                 }
-                throw new Error('下載失敗');
+                //throw new Error('下載失敗');
+                alert('下載失敗');
             })
             .then(blob => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
                 a.href = url;
-                a.download = 'your-file.xlsx';  // 這裡指定文件名
+                a.download = `${year}-${month}-${day}-單一藥櫃的藥櫃抽屜報表_Drawer1.xlsx`;  // 這裡指定文件名
                 document.body.appendChild(a);
                 a.click();
                 a.remove();

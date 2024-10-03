@@ -75,6 +75,7 @@ class CbntSensorCommunicator {
             });
             //更新倒數登出
             if (Cmutr.QuHadDrug.length > 0) { SensorRunning(); }
+
         };
         goPost.CompleteCallback = function () {
             //console.log("complete");

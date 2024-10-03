@@ -48,7 +48,7 @@ namespace TpePrmcyWms.Models.Service
                 LogTime = DateTime.Now,
                 Success = false,
             };
-            _db.Add(add);
+            _db.ApiLog.Add(add);
             _db.SaveChanges();
         }
 

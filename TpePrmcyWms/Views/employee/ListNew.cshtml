@@ -21,7 +21,7 @@
     <div class="ListCtrlPanel">
 		@if ((ViewBag.OperateAuths["Updatable"] && Model.FID > 0) || ViewBag.OperateAuths["Creatable"] && Model.FID == 0)
 		{
-            <input type="button" onclick="goQueryApi()" value="確認" class="CtrlBtn" />
+            <input type="button" onclick="goQueryApi()" value="同步醫院資料庫" class="CtrlBtn" />
 		}
 	</div>
 </form>

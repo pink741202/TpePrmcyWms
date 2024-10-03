@@ -1,0 +1,69 @@
+﻿@model List<TpePrmcyWms.Models.Unit.Front.EmpCardScan>;
+@using Newtonsoft.Json;
+@{
+    Layout = null;
+}
+<style>
+    .innerPageBox{
+        padding: 30px;
+    }
+        .innerPageBox div, .innerPageBox img {
+            margin: 20px;
+            font-weight: bolder;
+        }
+
+        .innerPageBox #ScanInput {
+            border: none;
+            font-size: 10px;
+            color: blue;
+        }
+
+            .innerPageBox #ScanInput:focus {
+                outline: none;
+            }
+
+        .innerPageBox .warning{
+            color: red;
+        }
+</style>
+
+@if (Model.Count > 0)
+{
+    
+    <div class="innerPageBox">
+        <div>請刷卡</div>
+        <img id="scanning" src="~/Images/SystemUse/RfidCard.png">
+        <div class="normal"></div>
+        <div class="warning"></div>
+        <input type="text" id="ScanInput" value="" size="1">
+    </div>
+    
+}
+
+<script>
+    $(document).ready(function () {
+        var NameList = @Html.Raw(JsonConvert.SerializeObject(Model)); 
+        //console.log(NameList);
+        $("#ScanInput").focus();
+        $("#ScanInput").blur(function () { $("#ScanInput").focus(); });
+
+        $("#ScanInput").bind('keypress', function (e) {
+            var code = e.keyCode || e.which;
+            if (code == 13) { 
+                $(".normal").text('');
+                $(".warning").text('');
+                let candno = $("#ScanInput").val();
+                let picked = NameList.find(x => x.CardNo == candno);
+                if (picked) {
+                    $("#ScanInput").val('');
+                    $(".normal").text(picked.name + " 醫師 您好");
+                    if (ScanCardResultCalling) { ScanCardResultCalling(picked); }
+                    setTimeout(function () { AlertWinClose(); }, 800);
+                }
+                else { $("#ScanInput").val(''); $(".warning").text("查無資料，請重新刷卡"); }
+                //console.log(picked);
+                
+            }
+        });
+    });
+</script>

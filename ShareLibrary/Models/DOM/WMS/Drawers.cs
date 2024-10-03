@@ -1,0 +1,25 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.InteropServices;
+
+namespace TpePrmcyWms.Models.DOM
+{
+    [Table("Drawers")]
+    public partial class Drawers
+    {
+        [Key]
+        public int FID { get; set; }
+        [Required]
+        [Display(Name = "所屬櫃子")]
+        public int CbntFid { get; set; }
+        [Required]
+        [Display(Name = "藥格編號")]
+        public int No { get; set; }
+        [Display(Name = "藥格門狀態")]
+        public bool? DoorStatus { get; set; }
+        [Display(Name = "藥格門偵測時間")]
+        public DateTime? DoorChkTime { get; set; }
+        [Display(Name = "所屬院區")]
+        public int? comFid { get; set; }
+    }
+}

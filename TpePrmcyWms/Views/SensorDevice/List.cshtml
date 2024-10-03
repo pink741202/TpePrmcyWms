@@ -2,8 +2,8 @@
 @using TpePrmcyWms.Models.Unit.Back
 @using TpePrmcyWms.Models.Service
 @{
-    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "employee" });
-    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "SensorType" });
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "employee", "cabinet" });
+    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "SensorType", "SsrVer_LED", "SsrVer_LOCK", "SsrVer_DOORCHK", "SsrVer_SCALE" });
 }
 
 <div class="ListPage_QueryArea">
@@ -12,18 +12,20 @@
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
             <div class="form-actions no-color">
-                <select name="qKeyString"
-                        asp-items="@(
-                        new List<SelectListItem>(){
-                            new SelectListItem(){ Value = "Drawer", Text = "藥格", Selected = "Drawer" == ViewBag.qKeyString },
-                            new SelectListItem(){ Value = "DrugGrid", Text = "藥格藥品", Selected = "DrugGrid" == ViewBag.qKeyString }
-                        })">
-                    <option value="">查詢-目標類型</option>
+                <select name="qCabinet"
+                        asp-items="@(DropValueList.Where(x=>x.Group=="cabinet")
+                    .Select(s => new SelectListItem { Value = s.Value, Text = s.Text, Selected=s.Value==ViewBag.qCabinet }))">
                 </select>
+                
                 <select name="qSensorType"
                         asp-items="@(DropParamList.Where(x=>x.Group=="SensorType")
                     .Select(s => new SelectListItem { Value = s.Value, Text = s.Text, Selected=s.Value==ViewBag.qSensorType }))">
-                    <option value="">查詢-感應器</option>
+                    <option value="">查詢-設備類型</option>
+                </select> |
+                <select name="qNotWork">
+                    <option value="">查詢-壞掉的</option>
+                    <option value="Y">壞掉的</option>
+                    <option value="N">查詢-壞掉的</option>
                 </select> |
                 
                 <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
@@ -46,10 +48,10 @@
                         @Html.DisplayNameFor(model => model[0].SensorNo)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].SerialPort)
-                    </th>
+                        @Html.DisplayNameFor(model => model[0].SensorVersion)
+                    </th>    
                     <th>
-                        @Html.DisplayNameFor(model => model[0].Modbus_Addr)
+                        @Html.DisplayNameFor(model => model[0].NotWork)
                     </th>
                     <th class="NotImportant Wd100">
                         @Html.DisplayNameFor(model => model[0].modid)
@@ -81,10 +83,10 @@
                             @Html.DisplayFor(modelItem => item.SensorNo)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.SerialPort)
+                            @(DropParamList.Where(w => w.Group == $"SsrVer_{item.SensorType}" && w.Value == item.SensorVersion).FirstOrDefault()?.Text ?? "")
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.Modbus_Addr)
+                            @Html.DisplayFor(modelItem => item.NotWork)
                         </td>
                         <td class="NotImportant Wd100">
                             @((item.modid ?? 0) == 0 ? "" :

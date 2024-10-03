@@ -4,11 +4,13 @@ using Newtonsoft.Json;
 using System;
 using System.Linq;
 using TpePrmcyWms.Models.DOM;
-using TpePrmcyWms.Models.HsptlApiUnit;
+using ShareLibrary.Models.HsptlApiUnit;
+using ShareLibrary.Models.Service;
 using TpePrmcyWms.Models.Unit;
 using TpePrmcyWms.Models.Unit.Back;
 using TpePrmcyWms.Models.Unit.Front;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using ShareLibrary.Models.Unit;
+using Microsoft.VisualBasic;
 
 namespace TpePrmcyWms.Models.Service
 {
@@ -83,8 +85,9 @@ namespace TpePrmcyWms.Models.Service
             #region 藥單
             try
             {                
-                result = new PrscptBillInfo(data);
-                result.Pharmarcy = string.IsNullOrEmpty(result.Pharmarcy) ? Comid : result.Pharmarcy; //手輸就當是跟櫃子同院
+                result = new PrscptBillInfo(new PrscptBill().map(data));
+                bool byQrcode = !string.IsNullOrEmpty(result.Pharmarcy);
+                result.Pharmarcy = !byQrcode ? Comid : result.Pharmarcy; //手輸就當是跟櫃子同院
                 int chkDrugTakedLv = _db.DrugInfo.Where(dr => dr.DrugCode.Equals(result.DrugCode)).First().ChkDrugTakedLv ?? 1;
 
                 PrscptBill? rec = null;
@@ -111,21 +114,45 @@ namespace TpePrmcyWms.Models.Service
                 }
 
                 if (rec == null && result.TtlQty != null && result.TtlQty > 0)
-                {
-                    if(SysBaseServ.JsonConf("TestEnvironment:HsptlApi") != "Y") //正式環境,才有HIS
-                    {
-                        HsptlApiService hsptlServ = new HsptlApiService(_loginfo);
-                        ApiQueryObj apiQ = new ApiQueryObj(data);
-                        result.HISchk = hsptlServ.getOutStorage(apiQ);
-                    }
-                    _db.Add(result);
+                {                    
+                    result.adddate = DateTime.Now;
+                    result.addid = _loginfo.User.Fid;
+                    _db.PrscptBill.Add(result);
                     _db.SaveChanges();
+                    if (SysBaseServ.JsonConf("TestEnvironment:HsptlApi") != "Y" && byQrcode) //正式環境,才有HIS
+                    {
+                        HsptlApiService hsptlServ = new HsptlApiService();
+                        Qry_OutStorage apiQ = new Qry_OutStorage(data);
+                        result.HISchk = hsptlServ.getOutStorage(apiQ);
+                        _db.PrscptBill.Update(result);
+                        _db.SaveChanges(true);
+                        if (!(result.HISchk ?? false))
+                        {
+                            string title = "";
+                            int alerttype = 0;
+                            if (result.HISchk == null) { title = "藥單尚未與HIS系統確認"; alerttype = (int)AlertTypeClass.HisConnectFailed; }
+                            if (result.HISchk == false) { title = "藥單與HIS系統確認結果為FAILE"; alerttype = (int)AlertTypeClass.HisReturnFalse; }
+
+                            AlertNotification addAlert = new AlertNotification();
+                            addAlert.AlertType = alerttype;
+                            addAlert.SourceTable = "PrscptBill";
+                            addAlert.SourceFid = result.FID;
+                            addAlert.SendTo = AtCbntFid.ToString();
+                            addAlert.AlertTitle = title;
+                            addAlert.AlertContent = "";
+                            addAlert.adddate = DateTime.Now;
+                            _db.AlertNotification.Add(addAlert);
+                            _db.SaveChanges(true);
+                        }
+                    }
                 }
                 else
                 {
                     if (!string.IsNullOrEmpty(result.Pharmarcy)) { rec.ScanTime++; _db.SaveChanges(); }
                     result.FID = rec == null ? -1 : rec.FID;
-                    result.ScanTime = rec == null ? 0 : rec.ScanTime;
+                    result.ScanTime = rec == null ? 0 : rec.ScanTime++;
+                    result.moddate = DateTime.Now;
+                    result.modid = _loginfo.User.Fid;
                     result.DoneFill = rec == null ? false : rec.DoneFill;
                 }
             }
@@ -146,7 +173,7 @@ namespace TpePrmcyWms.Models.Service
             #region 藥單
             try
             {
-                PrscptBill bill = new PrscptBill(data);
+                PrscptBill bill = new PrscptBill().map(data);
 
                 PrscptBill? rec = _db.PrscptBill.Where(
                        x => x.PrscptNo == bill.PrscptNo
@@ -336,15 +363,74 @@ namespace TpePrmcyWms.Models.Service
                     if (result.bill.DoneFill && result.stockBill.BillType.StartsWith("DF")) //領藥完成
                     { result.isValid = false; result.InvalidMsg = "此藥單已完成領藥"; return result; }
 
-                    //限定藥品-贈藥FreeTrial
+                    //限定藥品-贈藥 FreeTrial + 臨採 AdHocProc
                     if (result.stockBill.BillType.StartsWith("DF"))
                     {
-                        List<DrugLimitedTo> limited = _db.DrugLimitedTo.Where(x => x.DrugFid == theDrug.FID && x.ActiveType == "FreeTrial").ToList();
-                        if (limited.Count > 0)
+                        List<DrugLimitedTo> FreeTrial = _db.DrugLimitedTo.Where(x => x.DrugFid == theDrug.FID && x.ActiveType == "FreeTrial").ToList();
+                        if (FreeTrial.Count > 0)
                         {
-                            DrugLimitedTo? has = limited.Where(x => x.TargetPatient == result.bill.PatientNo).FirstOrDefault();
-                            if (has == null) { result.isValid = false; result.InvalidMsg = "此病歷號不在贈藥名單內，不得領藥！"; return result; }
-                            if (has.Qty < result.bill.TtlQty) { result.isValid = false; result.InvalidMsg = "此贈藥名單數量不足，不得領藥！"; return result; }
+                            DrugLimitedTo? has = FreeTrial.Where(x => x.TargetPatient == result.bill.PatientNo).FirstOrDefault();
+                            if (has == null) { 
+                                result.isValid = false; 
+                                result.InvalidMsg = "此病歷號不在贈藥名單內，不得領藥！";
+
+                                #region AlertNotification
+                                AlertNotification addAlert = new AlertNotification();
+                                addAlert.AlertType = (int)AlertTypeClass.FreeTrialNotOnList;
+                                addAlert.SourceTable = "PrscptBill";
+                                addAlert.SourceFid = result.bill.FID;
+                                addAlert.SendTo = AtCbntFid.ToString();
+                                addAlert.AlertTitle = "病歷號不在贈藥名單內";
+                                addAlert.AlertContent = "";
+                                addAlert.adddate = DateTime.Now;
+                                _db.AlertNotification.Add(addAlert);
+                                _db.SaveChanges(true);
+                                #endregion
+
+                                return result; 
+                            }
+                            if (has.Qty < result.bill.TtlQty) { 
+                                result.isValid = false; 
+                                result.InvalidMsg = "此贈藥名單數量不足，不得領藥！";
+
+                                #region AlertNotification
+                                AlertNotification addAlert = new AlertNotification();
+                                addAlert.AlertType = (int)AlertTypeClass.FreeTrialNotEnough;
+                                addAlert.SourceTable = "PrscptBill";
+                                addAlert.SourceFid = result.bill.FID;
+                                addAlert.SendTo = AtCbntFid.ToString();
+                                addAlert.AlertTitle = "贈藥名單數量不足";
+                                addAlert.AlertContent = "";
+                                addAlert.adddate = DateTime.Now;
+                                _db.AlertNotification.Add(addAlert);
+                                _db.SaveChanges(true);
+                                #endregion
+
+                                return result; 
+                            }
+                        }
+                        List<DrugLimitedTo> AdHocProc = _db.DrugLimitedTo.Where(x => x.DrugFid == theDrug.FID && x.ActiveType == "AdHocProc").ToList();
+                        if (AdHocProc.Count > 0)
+                        {
+                            DrugLimitedTo? has = FreeTrial.Where(x => x.TargetPatient == result.bill.PatientNo).FirstOrDefault();
+                            if (has == null)
+                            {
+                                result.InvalidMsg = "此病歷號不在臨採名單內！";
+
+                                #region AlertNotification
+                                AlertNotification addAlert = new AlertNotification();
+                                addAlert.AlertType = (int)AlertTypeClass.AdHocProcNotOnList;
+                                addAlert.SourceTable = "PrscptBill";
+                                addAlert.SourceFid = result.bill.FID;
+                                addAlert.SendTo = AtCbntFid.ToString();
+                                addAlert.AlertTitle = "病歷號不在臨採名單內";
+                                addAlert.AlertContent = "";
+                                addAlert.adddate = DateTime.Now;
+                                _db.AlertNotification.Add(addAlert);
+                                _db.SaveChanges(true);
+                                #endregion
+
+                            }
                         }
                     }
 
@@ -406,7 +492,7 @@ namespace TpePrmcyWms.Models.Service
                 if (result.drGridinfo.Select(x => x.StockQty).Sum() == 0) { result.isValid = false; result.InvalidMsg = "庫存為0"; return result; };
 
                 //多筆cc轉換一瓶 可用功能頁: DFB,OSA
-                List<string> CCtypes = new List<string> { "DFB", "OSA", "BXI", "SRI", "SRO", "LRG" }; //可用cc之白名單
+                List<string> CCtypes = new List<string> { "DFB", "OSA", "BXI", "SRI", "SRO", "LRG", "TG2", "TI2" }; //可用cc之白名單
                 if (result.drGridinfo.Where(x => x.UnitConvert != null).ToList().Count > 0 && !CCtypes.Contains(obj.BillType))
                 {
                     result.isValid = false; result.InvalidMsg = "此藥品不得在此功能操作"; return result;
@@ -463,12 +549,62 @@ namespace TpePrmcyWms.Models.Service
                     }
 
                     //限定藥品-贈藥FreeTrial
-                    List<DrugLimitedTo> limited = _db.DrugLimitedTo.Where(x => x.DrugFid == theDrug.FID && x.ActiveType == "FreeTrial").ToList();
-                    if (limited.Count > 0)
+                    List<DrugLimitedTo> FreeTrial = _db.DrugLimitedTo.Where(x => x.DrugFid == theDrug.FID && x.ActiveType == "FreeTrial").ToList();
+                    if (FreeTrial.Count > 0)
                     {
-                        DrugLimitedTo? has = limited.Where(x => x.TargetPatient == newbill.PatientNo).FirstOrDefault();
-                        if (has == null) { newbill.msg = "此病歷號不在贈藥名單內，不得領藥！"; }
-                        if (has != null && has.Qty < newbill.TtlQty) { newbill.msg = "此贈藥名單數量不足，不得領藥！"; }
+                        DrugLimitedTo? has = FreeTrial.Where(x => x.TargetPatient == newbill.PatientNo).FirstOrDefault();
+                        if (has == null) { 
+                            newbill.msg = "此病歷號不在贈藥名單內，不得領藥！";
+                            #region AlertNotification
+                            AlertNotification addAlert = new AlertNotification();
+                            addAlert.AlertType = (int)AlertTypeClass.FreeTrialNotOnList;
+                            addAlert.SourceTable = "PrscptBill";
+                            addAlert.SourceFid = newbill.FID;
+                            addAlert.SendTo = AtCbntFid.ToString();
+                            addAlert.AlertTitle = "病歷號不在贈藥名單內";
+                            addAlert.AlertContent = "";
+                            addAlert.adddate = DateTime.Now;
+                            _db.AlertNotification.Add(addAlert);
+                            _db.SaveChanges(true);
+                            #endregion
+                        }
+                        if (has != null && has.Qty < newbill.TtlQty) { 
+                            newbill.msg = "此贈藥名單數量不足，不得領藥！";
+                            #region AlertNotification
+                            AlertNotification addAlert = new AlertNotification();
+                            addAlert.AlertType = (int)AlertTypeClass.FreeTrialNotEnough;
+                            addAlert.SourceTable = "PrscptBill";
+                            addAlert.SourceFid = newbill.FID;
+                            addAlert.SendTo = AtCbntFid.ToString();
+                            addAlert.AlertTitle = "贈藥名單數量不足";
+                            addAlert.AlertContent = "";
+                            addAlert.adddate = DateTime.Now;
+                            _db.AlertNotification.Add(addAlert);
+                            _db.SaveChanges(true);
+                            #endregion
+                        }
+                    }
+                    List<DrugLimitedTo> AdHocProc = _db.DrugLimitedTo.Where(x => x.DrugFid == theDrug.FID && x.ActiveType == "AdHocProc").ToList();
+                    if (AdHocProc.Count > 0)
+                    {
+                        DrugLimitedTo? has = AdHocProc.Where(x => x.TargetPatient == newbill.PatientNo).FirstOrDefault();
+                        if (has == null)
+                        {
+                            newbill.msg = "此病歷號不在臨採名單內！";
+
+                            #region AlertNotification
+                            AlertNotification addAlert = new AlertNotification();
+                            addAlert.AlertType = (int)AlertTypeClass.AdHocProcNotOnList;
+                            addAlert.SourceTable = "PrscptBill";
+                            addAlert.SourceFid = newbill.FID;
+                            addAlert.SendTo = AtCbntFid.ToString();
+                            addAlert.AlertTitle = "病歷號不在臨採名單內";
+                            addAlert.AlertContent = "";
+                            addAlert.adddate = DateTime.Now;
+                            _db.AlertNotification.Add(addAlert);
+                            _db.SaveChanges(true);
+                            #endregion
+                        }
                     }
 
                     //服用頻次表
@@ -599,7 +735,7 @@ namespace TpePrmcyWms.Models.Service
             //確認藥單
             if (!string.IsNullOrEmpty(obj.Scantext))
             {
-                result.bill = new PrscptBillInfo(new PrscptBill(obj.Scantext.Split(';')));
+                result.bill = new PrscptBillInfo(new PrscptBill().map(obj.Scantext.Split(';')));
                 try
                 {
                     PrscptBill? obill = _db.PrscptBill.Where(
@@ -747,6 +883,69 @@ namespace TpePrmcyWms.Models.Service
 
             return result;
         }
+
+        //美沙冬
+        public QryDrawers GetDrawers_MSD(StockBill_MSD obj)
+        {
+            QryDrawers result = new QryDrawers(obj.DrugCode);
+            try
+            {
+                //確認藥品代碼
+                result.stockBill = new StockBill_Prscpt
+                {
+                    DrugCode = obj.DrugCode,
+                    DrugFid = obj.DrugFid,
+                    DrugName = obj.DrugName,
+                    CbntFid = obj.CbntFid,
+                    BillType = obj.BillType,
+                    TradeType = obj.TradeType,
+                };
+                int DrugFid = getDrugFid(obj.DrugCode);
+                result.stockBill.DrugFid = DrugFid;
+                if (DrugFid == -1) { result.isValid = false; result.InvalidMsg = "查無藥品代碼"; return result; }
+
+                //確認藥單 應該不會過來這,直接FrontApi存入,同沖銷
+                //if (!string.IsNullOrEmpty(obj.Scantext))
+                //{
+                //    result.bill = SetPrscptBill(obj.Scantext.Split(';'));
+
+                //    if (result.bill.TtlQty != null) //真有藥單 否則 沒藥單,開門放藥專用
+                //    {
+                //        if (result.bill.FID < 0) { result.isValid = false; result.InvalidMsg = "此藥單出現錯誤"; return result; }
+
+                //        if (result.bill.DoneFill) //沖藥單應該是只能用一次
+                //        { result.isValid = false; result.InvalidMsg = "此藥單已在系統中，不得再次沖銷"; return result; }
+                //    }
+
+                //    //補齊可能缺失但後續要的資料
+                //    result.stockBill.DrugFid = DrugFid;
+                //    result.stockBill.DrugCode = result.bill.DrugCode ?? "";
+                //    result.stockBill.DrugName = result.bill.DrugName ?? "";
+                //}
+
+                //藥格
+                #region 庫存資訊
+                result.drGridinfo = GetDrugGrids((int)DrugFid);
+                if (result.drGridinfo == null || result.drGridinfo.Count == 0) { result.isValid = false; result.InvalidMsg = "查無藥格設定"; return result; }
+
+                if (!obj.TradeType && result.drGridinfo.Where(x => x.StockQty >= obj.TargetQty).ToList().Count <= 0)
+                {
+                    result.isValid = false; result.InvalidMsg = "查無庫存"; return result;
+                }
+
+                #endregion
+
+                //包裝
+                #region 包裝
+                result.PackageCnt = 0;
+                #endregion
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.isValid = false; result.InvalidMsg = "查詢藥格資訊出錯誤！"; return result;
+            }
+        }
         #endregion
 
         #region Trans 調出調入的存檔
@@ -763,9 +962,11 @@ namespace TpePrmcyWms.Models.Service
                 if (bill == null) { return new ResponObj<string>("Err", "調入調出申請存檔時，查無異動資料"); }                
                 bill.DrugGridFid = getDrugGridFid(bill.DrawFid ?? 0, obj.DrugCode);
                 if (bill.DrugGridFid == 0) { return new ResponObj<string>("Err", "調入調出申請存檔時，查無異動的藥格資料"); }
+                bill.adddate = DateTime.Now;
+                bill.addid = _loginfo.User.Fid;
                 bill.moddate = DateTime.Now;
                 bill.JobDone = true;
-                _db.Add(bill);
+                _db.StockBill.Add(bill);
                 _db.SaveChanges();
                 //更新庫存
                 AfterStocking(bill);
@@ -780,11 +981,13 @@ namespace TpePrmcyWms.Models.Service
                 tobill.ExpireDate = bill.ExpireDate;
                 tobill.BatchNo = bill.BatchNo;
                 tobill.TargetQty = bill.TargetQty;
+                tobill.adddate = DateTime.Now;
+                tobill.addid = _loginfo.User.Fid;
                 tobill.moddate = bill.moddate;
                 tobill.JobDone = false;
                 if (tobill.CbntFid > 0)
                 {                    
-                    _db.Add(tobill);
+                    _db.StockBill.Add(tobill);
                     _db.SaveChanges();
                 }                
 
@@ -795,7 +998,9 @@ namespace TpePrmcyWms.Models.Service
                     if (rejbill == null) { return new ResponObj<string>("Err", "調入調出申請存檔時，產生退回異動單失敗"); }
                     rejbill.CbntFid = bill.CbntFid;
                     rejbill.FID = 0;
-                    _db.Add(rejbill);
+                    rejbill.addid = _loginfo.User.Fid;
+                    rejbill.adddate = DateTime.Now;
+                    _db.StockBill.Add(rejbill);
                     _db.SaveChanges();
                 }
 
@@ -812,7 +1017,7 @@ namespace TpePrmcyWms.Models.Service
                         if (newto == null) { return new ResponObj<string>("Err", "調入調出申請存檔時，產生多筆對象異動單失敗"); }
                         newto.CbntFid = i; newto.FID = 0; toall.Add(newto);
                     }
-                    _db.AddRange(toall);
+                    _db.StockBill.AddRange(toall);
                     _db.SaveChanges();
                 }
 
@@ -834,6 +1039,7 @@ namespace TpePrmcyWms.Models.Service
                 if (bill == null) { return new ResponObj<string>("Err", "調入調出異動存檔時，查無異動資料"); }
                 bill.DrugGridFid = getDrugGridFid(bill.DrawFid ?? 0, obj.DrugCode);
                 if (bill.DrugGridFid == 0 && bill.Qty > 0) { return new ResponObj<string>("Err", "調入調出異動存檔時，查無異動的藥格資料"); }
+                bill.modid = _loginfo.User.Fid;
                 bill.moddate = DateTime.Now;
                 bill.JobDone = true;
                 bill.RecNote = null;
@@ -868,6 +1074,8 @@ namespace TpePrmcyWms.Models.Service
                     addbill.UserChk1Qty = null;
                     addbill.UserChk2Qty = null;
                     addbill.TakeType = null;
+                    addbill.addid = _loginfo.User.Fid;
+                    addbill.adddate = DateTime.Now;
                     _db.StockBill.Add(addbill);
                     _db.SaveChanges();
                 }
@@ -914,7 +1122,7 @@ namespace TpePrmcyWms.Models.Service
                                 StockbillFid = bill.FID,
                                 ReturnSheet = string.IsNullOrEmpty(bill.ReturnSheet) ? null : bill.ReturnSheet,
                             };
-                            _db.Add(add);
+                            _db.MapPrscptOnBill.Add(add);
                             _db.SaveChanges();
                         }
                     }
@@ -924,6 +1132,7 @@ namespace TpePrmcyWms.Models.Service
                 }
             }
         }
+        
         //沖銷群組-庫存異動
         public void SaveOffsetBill(StockBill_Prscpt bill)
         {
@@ -940,9 +1149,11 @@ namespace TpePrmcyWms.Models.Service
                         PrscptBill? update = _db.PrscptBill.Find(prscpt.FID);
                         if (update != null)
                         {
+                            update.modid = _loginfo.User.Fid;
+                            update.moddate = DateTime.Now;
                             update.TtlQty = prscpt.TtlQty;
                             update.DoneFill = true;
-                            _db.Update(update);
+                            _db.PrscptBill.Update(update);
                             _db.SaveChanges(true);
                         }
                         
@@ -960,7 +1171,7 @@ namespace TpePrmcyWms.Models.Service
                                 OffsetQryKey = qrykey,
                                 OffsetGroup = "",
                             };
-                            _db.Add(add);
+                            _db.MapPrscptOnBill.Add(add);
                             _db.SaveChanges();
                         }
                     }                    
@@ -980,7 +1191,7 @@ namespace TpePrmcyWms.Models.Service
                             OffsetQryKey = qrykey,
                             OffsetGroup = "",
                         };
-                        _db.Add(add);
+                        _db.MapPrscptOnBill.Add(add);
                         _db.SaveChanges();
                     }
                 }
@@ -1147,18 +1358,7 @@ namespace TpePrmcyWms.Models.Service
                     }
                 }
 
-                #region check need send alert mail
-                MailService mail = new MailService(_loginfo);
-                if (bill.SysChkQty != bill.UserChk2Qty && bill.DrugGridFid > 0)
-                {
-                    mail.AlertMsg(bill, "errstocktak");
-                }
-                if (dg.Qty < dg.SafetyStock && bill.TakeType != "" && bill.DrugGridFid > 0)
-                {
-                    mail.AlertMsg(bill, "lowstock");
-                }
-
-                #endregion
+                
             }
             catch (Exception ex) { SysBaseServ.Log(_loginfo, ex); }
 

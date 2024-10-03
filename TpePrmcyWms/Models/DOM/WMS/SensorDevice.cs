@@ -16,28 +16,35 @@ namespace TpePrmcyWms.Models.DOM
         [Display(Name = "目標類型")]
         public string? TargetTable { get; set; }
         [Display(Name = "目標物件")]
-        public int? TargetObjFid { get; set; }        
+        public int? TargetObjFid { get; set; }
         [Required]
         [StringLength(10)]
         [Display(Name = "感應器類型")]
-        public string SensorType { get; set; }
+        public string? SensorType { get; set; } = "";
+        [StringLength(20)]
+        [Display(Name = "感應器版本")]
+        public string? SensorVersion { get; set; } = "";
 
         [Required]
         [StringLength(12)]
         [Display(Name = "編號")]
-        public string SensorNo { get; set; }
+        public string? SensorNo { get; set; } = "";
 
         [StringLength(5)]
         [Display(Name = "埠號")]
-        public string SerialPort { get; set; }
+        public string? SerialPort { get; set; } = "";
         [Display(Name = "硬體位址")]
-        [Range(maximum:8,minimum:1,ErrorMessage = "數字範圍需介於{1}到{2}")]
+        [Range(maximum: 8, minimum: 1, ErrorMessage = "數字範圍需介於{1}到{2}")]
         public int? Modbus_Addr { get; set; }
         [Display(Name = "線圈位址")]
         [Range(maximum: 4000, minimum: 0, ErrorMessage = "數字範圍需介於{1}到{2}")]
         public int? Modbus_Rgst { get; set; }
-        [Display(Name = "16進位指令")]
-        public string? Modbus_X16 { get; set; }
+        [Display(Name = "指令")]
+        public string? Modbus_Cmd { get; set; }
+        [Display(Name = "壞掉")]
+        public string? NotWork { get; set; } = "";
+        [Display(Name = "壞掉時間")]
+        public DateTime? NotWorkTime { get; set; }
         [Display(Name = "公司")]
         public int? comFid { get; set; }
         [Display(Name = "更新人員")]
@@ -49,22 +56,17 @@ namespace TpePrmcyWms.Models.DOM
         //NotMapped
         [Display(Name = "藥櫃")]
         [NotMapped]
-        [ValidateNever]
         public int? CbntFid { get; set; } = 0;
         [Display(Name = "藥格")]
         [NotMapped]
-        [ValidateNever]
         public int? DrawFid { get; set; } = 0;
         [Display(Name = "藥品")]
         [NotMapped]
-        [ValidateNever]
         public int? DrGridFid { get; set; } = 0;
         [NotMapped]
-        [ValidateNever]
         [Display(Name = "換算重量資料")]
         public int? PackageFid { get; set; } = 0;
         [NotMapped]
-        [ValidateNever]
         public int? MapPackOnSensorFid { get; set; } = 0;
     }
 }

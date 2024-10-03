@@ -1,0 +1,80 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\DOM\**" />
+    <Compile Remove="Models\HsptlApiUnit\**" />
+    <EmbeddedResource Remove="Models\DOM\**" />
+    <EmbeddedResource Remove="Models\HsptlApiUnit\**" />
+    <None Remove="Models\DOM\**" />
+    <None Remove="Models\HsptlApiUnit\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\Service\HsptlApiService.cs" />
+    <Compile Remove="Models\Service\MailService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Models\DOM\DBcPharmacy.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="EasyModbusCore" Version="1.0.0" />
+    <PackageReference Include="HslCommunication" Version="11.8.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.26" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.26">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.26" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2478.35" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ShareLibrary\ShareLibrary.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Forms\FormDeviceDetect.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\FormLEDStripTest.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\FormComuTaskTest.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\FormBrowser.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\FormInitialSetup.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\FormHsptlApiTest.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

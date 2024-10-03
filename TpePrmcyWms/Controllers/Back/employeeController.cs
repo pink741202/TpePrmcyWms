@@ -6,10 +6,10 @@ using TpePrmcyWms.Models.Service;
 using TpePrmcyWms.Models.Unit.Back;
 using System.Linq;
 using TpePrmcyWms.Models.Unit;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using Microsoft.Data.SqlClient;
 using Dapper;
-using Microsoft.AspNetCore.Mvc.Formatters;
+using ShareLibrary.Models.Service;
+using ShareLibrary.Models.Unit;
 
 namespace TpePrmcyWms.Controllers.Back
 {
@@ -264,8 +264,8 @@ namespace TpePrmcyWms.Controllers.Back
 
             try
             {
-                HsptlApiService hsptlServ = new HsptlApiService(Loginfo);
-                ResponObj<employee?> fromapi = await hsptlServ.getEmpInfo(emp_no);
+                HsptlApiService hsptlServ = new HsptlApiService();
+                ResponObject<employee?> fromapi = await hsptlServ.EmpRequest(emp_no);
                 if (fromapi.returnData != null)
                 {
                     string msg = "";

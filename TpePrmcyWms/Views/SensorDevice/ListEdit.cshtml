@@ -5,7 +5,7 @@
     Layout = null;
     Dictionary<string, string> LblMapValues = ViewFunc.MapFidToName(Model);
     List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "cabinet", "drawernosub", "drawerno", "drgridsub", "drugweigh", "drugname" });
-    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "SensorType" });
+    List<vParamOptions> DropParamList = ViewFunc.vParamSelect(new List<string>() { "SensorType", "SsrVer_LED", "SsrVer_LOCK", "SsrVer_DOORCHK", "SsrVer_SCALE" });
     List<SelectListGroup> CbntGroup = DropValueList.Where(x => x.Group == "cabinet").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
     List<SelectListGroup> DrawGroup = DropValueList.Where(x => x.Group == "drawerno").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
     List<SelectListGroup> DrugNameGroup = DropValueList.Where(x => x.Group == "drugname").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
@@ -55,6 +55,15 @@
             <span asp-validation-for="SensorType" class="text-danger"></span>
         </div>
         <div class="form-group">
+            <label asp-for="SensorVersion" class="control-label"></label>
+            <select asp-for="SensorVersion" class="form-control"
+                    asp-items="@(DropParamList.Where(x=>x.Group.StartsWith("SsrVer_"))
+                    .Select(s => new SelectListItem { Value = s.Value, Text=s.Text, Selected=s.Value==Model.SensorVersion }))">
+                <option value="">▼請選擇</option>
+            </select>
+            <span asp-validation-for="SensorVersion" class="text-danger"></span>
+        </div>
+        <div class="form-group">
             <label asp-for="SensorNo" class="control-label"></label>
             <input asp-for="SensorNo" class="form-control" />
             <span asp-validation-for="SensorNo" class="text-danger"></span>
@@ -77,6 +86,16 @@
             <input asp-for="Modbus_Rgst" class="form-control" />
             <span asp-validation-for="Modbus_Rgst" class="text-danger"></span>
 		</div>
+        <div class="form-group">
+            <label asp-for="NotWork" class="control-label"></label>
+            <input asp-for="NotWork" class="form-control" />
+            <span asp-validation-for="NotWork" class="text-danger"></span>
+        </div>
+        <div class="form-group">
+            <label asp-for="NotWorkTime" class="control-label"></label>
+            <input asp-for="NotWorkTime" class="form-control" />
+            <span asp-validation-for="NotWorkTime" class="text-danger"></span>
+        </div>
 
         <div class="form-group" id="setPackage">
             <label asp-for="PackageFid" class="control-label"></label>
@@ -113,7 +132,7 @@
     function goSubmit() {
         let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
         SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
-            $("#btn_submit").click();
+            CancelEdit();
         });
     }
     //取消鈕

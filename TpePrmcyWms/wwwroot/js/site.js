@@ -21,8 +21,7 @@ class AjaxJsonPostor {
     CompleteCallback =null;
 
     Post() {
-        console.log(this.url);
-        console.log(JSON.stringify(this.DataObj));
+        //console.log(JSON.stringify(this.DataObj));
         $.ajax({
             url: this.url,
             data: JSON.stringify(this.DataObj),
@@ -131,9 +130,9 @@ function SubmitFormModel(url, EditModel, successCall, failedCall) {
                 if (failedCall) { failedCall(); }
             }
             
-            if (result.code == 0 || result.code == "0") {
-                AlertWin(result.message);
+            if (result.code == 0 || result.code == "0") {                
                 if (successCall) { successCall(); }
+                AlertWin(result.message);
             }
             else if (result.code != "invalid") {
                 let messages = result.returnData ? result.returnData : result.message;

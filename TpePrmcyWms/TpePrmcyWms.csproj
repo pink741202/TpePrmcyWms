@@ -7,6 +7,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Models\DOM\SYS\**" />
+    <Compile Remove="Models\DOM\WMS\**" />
+    <Compile Remove="Models\HsptlApiUnit\**" />
+    <Content Remove="Models\DOM\SYS\**" />
+    <Content Remove="Models\DOM\WMS\**" />
+    <Content Remove="Models\HsptlApiUnit\**" />
+    <EmbeddedResource Remove="Models\DOM\SYS\**" />
+    <EmbeddedResource Remove="Models\DOM\WMS\**" />
+    <EmbeddedResource Remove="Models\HsptlApiUnit\**" />
+    <None Remove="Models\DOM\SYS\**" />
+    <None Remove="Models\DOM\WMS\**" />
+    <None Remove="Models\HsptlApiUnit\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\Service\HsptlApiService.cs" />
+    <Compile Remove="Models\Service\MailService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.35" />
     <PackageReference Include="EPPlus.Core" Version="1.5.4" />
     <PackageReference Include="HslCommunication" Version="12.0.3" />
@@ -23,6 +43,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration" Version="7.0.12" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShareLibrary\ShareLibrary.csproj" />
   </ItemGroup>
 
 </Project>

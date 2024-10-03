@@ -206,7 +206,7 @@ span.CtrlBtn#btn_add {
         }
 
         .MainFrame .InputArea.col2 {
-            width: 631px;
+            width: 731px;
         }
         .MainFrame .InputArea.Full {
             width: 100%;
@@ -278,7 +278,7 @@ span.CtrlBtn#btn_add {
             overflow: hidden;
         }
         .MainFrame .InputArea.col2 > table {
-            width: 630px;
+            width: 680px;
             border: 1px solid gray;
             border-collapse: collapse;
         }
@@ -316,6 +316,9 @@ span.CtrlBtn#btn_add {
                 width: 26px;
                 height: 26px;
             }
+            .MainFrame .InputArea .form-group:not(.btnbox) input[type="button"] {
+                background-color: forestgreen;
+            }
         .MainFrame .InputArea span.CtrlBtn {
             
         }
@@ -334,7 +337,7 @@ span.CtrlBtn#btn_add {
         float: left;
     }
         .MainFrame .TaskArea.col2 {
-            width: calc(100% - 633px);
+            width: calc(100% - 733px);
         }
         .MainFrame .TaskArea.Full {
             width: 75%;

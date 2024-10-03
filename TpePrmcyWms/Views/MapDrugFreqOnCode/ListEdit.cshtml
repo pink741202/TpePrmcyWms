@@ -72,12 +72,12 @@
 <script>
     //送出鈕
     function goSubmit() {
-        $(".btn").hide();
+        $(".ListCtrlPanel").hide();
         let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
         SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
-            $("#btn_submit").click();
+            CancelEdit();
         }, function () {
-            $(".btn").show();
+            $(".ListCtrlPanel").show();
         });
     }
     //取消鈕

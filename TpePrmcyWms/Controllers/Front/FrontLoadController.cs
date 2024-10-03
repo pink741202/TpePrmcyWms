@@ -6,7 +6,8 @@ using TpePrmcyWms.Models.Unit.Front;
 using TpePrmcyWms.Filters;
 using System.Collections.Generic;
 using TpePrmcyWms.Models.Unit.Back;
-using TpePrmcyWms.Models.HsptlApiUnit;
+using ShareLibrary.Models.HsptlApiUnit;
+using ShareLibrary.Models.Service;
 using System.Security.Cryptography;
 
 namespace TpePrmcyWms.Controllers.Front
@@ -67,10 +68,14 @@ namespace TpePrmcyWms.Controllers.Front
         {
             FrontendService frserv = new FrontendService(AtCbntFid, Loginfo);
             QryDrawers qDrawers = frserv.GetDrawers_StockTaking(vobj);
-            if (qDrawers.isValid && qDrawers.bill != null)
-            {
-                frserv.DrugPickAdd(vobj.DrugCode);
-            }
+            
+            return View(qDrawers);
+        }
+
+        public IActionResult DrawerTask_MSD(StockBill_MSD vobj)
+        {
+            FrontendService frserv = new FrontendService(AtCbntFid, Loginfo);
+            QryDrawers qDrawers = frserv.GetDrawers_MSD(vobj);            
 
             return View(qDrawers);
         }
@@ -78,15 +83,16 @@ namespace TpePrmcyWms.Controllers.Front
         #endregion
 
         #region 庫存異動時輸入批號
-        public IActionResult BatchNoInputer(int DrugGrudFid) //-1時,為入庫
+        public IActionResult BatchNoInputer(int DrugGridFid) //-1時,為入庫
         {
             List<DrugGridBatchNo> result = new List<DrugGridBatchNo>();
-            ViewBag.DrugGrudFid = DrugGrudFid;
-            if (DrugGrudFid == 0 || DrugGrudFid == -1) { return View(result); }
+            ViewBag.DrugGridFid = DrugGridFid;
+            if (DrugGridFid == 0 || DrugGridFid == -1) { return View(result); }
             try
             {
+                ViewBag.BatchActive = _db.DrugGrid.Find(DrugGridFid)?.BatchActive ?? false;
                 result = _db.DrugGridBatchNo
-                     .Where(x => x.GridFid == DrugGrudFid && x.ExpireDate >= DateTime.Now.AddMonths(-3).Date && x.Qty > 0)
+                     .Where(x => x.GridFid == DrugGridFid && x.ExpireDate >= DateTime.Now.AddMonths(-3).Date && x.Qty > 0)
                      .OrderByDescending(x => x.ExpireDate)
                      .Take(5)
                      .ToList();
@@ -146,8 +152,8 @@ namespace TpePrmcyWms.Controllers.Front
             {
                 try
                 {
-                    HsptlApiService hsptlServ = new HsptlApiService(Loginfo);
-                    ApiQueryObj apiQ = new ApiQueryObj();
+                    HsptlApiService hsptlServ = new HsptlApiService();
+                    Qry_IPDPatSeq apiQ = new Qry_IPDPatSeq();
                     apiQ.HospId = Comid;
                     apiQ.PatNo = vobj.PatientNo;
                     res = await hsptlServ.getIPDPatSeq(apiQ);
@@ -188,8 +194,8 @@ namespace TpePrmcyWms.Controllers.Front
             {
                 try
                 {
-                    HsptlApiService hsptlServ = new HsptlApiService(Loginfo);
-                    ApiQueryObj apiQ = new ApiQueryObj();
+                    HsptlApiService hsptlServ = new HsptlApiService();
+                    Qry_IPDReturn apiQ = new Qry_IPDReturn();
                     apiQ.HospId = Comid;
                     apiQ.PatNo = vobj.PatientNo;
                     res = await hsptlServ.getIPDReturnStorage(apiQ);
@@ -318,6 +324,22 @@ namespace TpePrmcyWms.Controllers.Front
                 SysBaseServ.Log(Loginfo, ex);
                 return Json(new { code = "Err", returnData = "發生錯誤！" });
             }
+        }
+        #endregion
+
+        #region 刷員工卡跳出視窗
+        public IActionResult EmpCardScanInterface()
+        {
+            List<EmpCardScan> result = _db.employee.Where(x=>x.comFid == Loginfo.User.comFid && (x.emp_no ?? "") != "")
+                .Select(x=> new EmpCardScan()
+                {
+                    Fid = x.FID,
+                    emp_no = x.emp_no ?? "",
+                    name = x.name ?? "",
+                    CardNo = x.CardNo ?? "",
+                })
+                .ToList();            
+            return View(result);
         }
         #endregion
     }

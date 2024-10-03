@@ -154,6 +154,7 @@
         $("#stocktake_@(qDrugCode)_done").click(function () {
             $("#takeqty_@(qDrugCode)_done").attr('disabled', true);
             if ($("#stocktake_@(qDrugCode)").val() == "") {
+                AlertWin("請輸入盤點數量！");
                 $("#takeqty_@(qDrugCode)_done").attr('disabled', false);
                 return;
             }

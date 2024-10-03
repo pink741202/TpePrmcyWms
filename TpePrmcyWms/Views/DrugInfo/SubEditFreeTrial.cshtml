@@ -64,9 +64,8 @@
                 let rec = EditModel.find(x => x.FID == id)
                 rec.TargetPatient = TargetPatient;
                 rec.Qty = Qty;
-                console.log("update")
             }
-            else { EditModel.push({ "FID": id, "TargetPatient": TargetPatient, "Qty": Qty, "DrugFid": @(drug.FID) }); console.log("push") }
+            else { EditModel.push({ "FID": id, "TargetPatient": TargetPatient, "Qty": Qty, "DrugFid": @(drug.FID) }); }
 
         })
         if (error) { $(".EditPage .CtrlBtn").show(); return false; }

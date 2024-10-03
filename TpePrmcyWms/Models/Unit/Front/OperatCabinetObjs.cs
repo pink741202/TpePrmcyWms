@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using TpePrmcyWms.Models.DOM;
+using System.Net;
 
 namespace TpePrmcyWms.Models.Unit.Front
 {
@@ -78,7 +79,6 @@ namespace TpePrmcyWms.Models.Unit.Front
         public string Scantext { get; set; } = "";
         public decimal? DailyTake { get; set; }
         public PrscptBillInfo() : base() { }
-        public PrscptBillInfo(string[] data) : base(data) { }
         public PrscptBillInfo(PrscptBill data)
         {
             this.FID = data.FID;
@@ -194,6 +194,51 @@ namespace TpePrmcyWms.Models.Unit.Front
         public decimal? WeighWeight { get; set; } //磅秤結果,現重
         public decimal? WeighWeight0 { get; set; } //磅秤結果,初重
         public decimal? WeighQty { get; set; } //磅秤結果,數量
+    }
+
+    //整合美沙酮
+    public class StockBill_MSD : StockBill
+    {
+        [Display(Name = "執行藥師")]
+        public string AddEmpName { get; set; } = "";
+        public int? superFid { get; set; }
+        [Display(Name = "護理師")]
+        public string SuperEmpName { get; set; } = "";
+        [DataType(DataType.Date)]
+        [Display(Name = "執行日期")]
+        public DateTime RecordDate { get; set; } = DateTime.Now.Date;
+
+
+        [Display(Name = "重量(g)")]
+        [DisplayFormat(DataFormatString = "{0}", ApplyFormatInEditMode = true)]
+        public decimal? This_Weight { get; set; } = 0;
+        [Display(Name = "體積(cc)")]
+        [DisplayFormat(DataFormatString = "{0}", ApplyFormatInEditMode = true)]
+        public decimal? This_CC { get; set; } = 0;
+        [Display(Name = "重量(g)")]
+        [DisplayFormat(DataFormatString = "{0}", ApplyFormatInEditMode = true)]
+        public decimal? Last_Weight { get; set; } = 0;
+        [Display(Name = "體積(cc)")]
+        [DisplayFormat(DataFormatString = "{0}", ApplyFormatInEditMode = true)]
+        public decimal? Last_CC { get; set; } = 0;
+
+
+
+        [Display(Name = "服用人數/日")]
+        public int? UsedPatientCnt { get; set; }
+        [Display(Name = "使用量(cc)/日")]
+        [DisplayFormat(DataFormatString = "{0}", ApplyFormatInEditMode = true)]
+        public decimal? UsedCC { get; set; }
+        [Display(Name = "盤盈虧(cc)")]
+        [DisplayFormat(DataFormatString = "{0}", ApplyFormatInEditMode = true)]
+        public decimal? StockTakeBalance { get; set; }
+
+
+        public List<PrscptBill> prscpts = new List<PrscptBill>();
+        [Display(Name = "掃瞄字串")]
+        public string Scantext { get; set; } = "";
+        public decimal? BottleWegiht { get; set; } = 400; //秤重 優化按鈕用
+
     }
 
 }

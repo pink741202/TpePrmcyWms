@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\Service\**" />
+    <EmbeddedResource Remove="Models\Service\**" />
+    <None Remove="Models\Service\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\DOM\DBcPharmacy.cs" />
+    <Compile Remove="Models\Unit\ApiEmployeeRoot.cs" />
+    <Compile Remove="Models\Unit\ApiHisUnits.cs" />
+    <Compile Remove="Models\Unit\ApiMedicineRoot.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

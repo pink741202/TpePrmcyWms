@@ -177,7 +177,7 @@
     function goQueryApi() {
         let qstring = $("#emp_no").val();
         if (qstring == "") { AlertWin("請輸入員工編號"); return false; }
-        $(".EditPage .btn").hide();
+        $(".ListCtrlPanel").hide();
         let Poster = new AjaxJsonPostor("@Url.Action("ListSyncHsptlApi")", qstring);
         Poster.SuccessCallback = function (result) {
             //console.log(JSON.stringify(result))
@@ -192,7 +192,7 @@
         }
         Poster.ErrorCallback = function () {
             AlertWin("送出失敗");
-            $(".EditPage .btn").show();
+            $(".ListCtrlPanel").show();
         }
         Poster.Post();
     }

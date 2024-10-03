@@ -86,11 +86,12 @@
             else { EditModel.push({ "FID": id, "TargetPatient": TargetPatient, "Qty": Qty, "DrugFid": @(drug.FID) }); }
             
         })
+        console.log("out foreach")
         
         if (error) { $(".EditPage .CtrlBtn").show(); return false; }
         let data = { fid: @(drug.FID), list: EditModel }
         //console.log(JSON.stringify(data));
-        let goPost = new AjaxJsonPostor("@Url.Action("SubEditAdHocProc")", EditModel);
+        let goPost = new AjaxJsonPostor("@Url.Action("SubEditAdHocProc")", data);
         goPost.SuccessCallback = function (result) {
             if (result.code == 0) {
                 AlertWin(result.returnData);

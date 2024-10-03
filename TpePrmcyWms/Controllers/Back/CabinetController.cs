@@ -183,7 +183,7 @@ namespace TpePrmcyWms.Controllers.Back
                                 No = x + 1,
                                 comFid = vobj.comFid,
                             };
-                            _db.Add(add);
+                            _db.Drawers.Add(add);
                             _db.SaveChanges();
                         }
                     }
@@ -197,7 +197,7 @@ namespace TpePrmcyWms.Controllers.Back
                                 alertmsg = "存檔成功，但部分藥格仍有設定藥品，無法減少藥格數量";
                                 break;
                             }
-                            _db.Remove(del);
+                            _db.Drawers.Remove(del);
                             _db.SaveChanges();
                         }
 

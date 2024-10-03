@@ -1,17 +1,15 @@
 ﻿using Dapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Security.Cryptography;
 using TpePrmcyWms.Models.DOM;
-using TpePrmcyWms.Models.HsptlApiUnit;
+using ShareLibrary.Models.Service;
 using TpePrmcyWms.Models.Service;
 using TpePrmcyWms.Models.Unit;
 using TpePrmcyWms.Models.Unit.Back;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
+using ShareLibrary.Models.Unit;
 
 namespace TpePrmcyWms.Controllers.Back
 {
@@ -96,7 +94,7 @@ namespace TpePrmcyWms.Controllers.Back
                 vobj.ReplaceTo = Convert.ToInt32(vobj.ReplaceToDrugName?.Split("，")[2]);
             }
             catch { ModelState.AddModelError(nameof(vobj.ReplaceToDrugName), "異動時須替代成的藥品 錯誤!"); }
-            if(vobj.FID == vobj.ReplaceTo) { ModelState.AddModelError(nameof(vobj.ReplaceToDrugName), "異動時須替代成的藥品 不得與本藥品相同!"); }
+            if(vobj.FID == vobj.ReplaceTo && (vobj.ReplaceTo ?? 0) != 0) { ModelState.AddModelError(nameof(vobj.ReplaceToDrugName), "異動時須替代成的藥品 不得與本藥品相同!"); }
             if (!ModelState.IsValid)
             {
                 List<ValidateReturnMsg> errors = ModelState.Where(w => w.Value?.Errors.Count > 0).Select(e => new ValidateReturnMsg { Name = e.Key, ErrorMsg = e.Value?.Errors[0].ErrorMessage ?? "" }).ToList();
@@ -160,8 +158,8 @@ namespace TpePrmcyWms.Controllers.Back
             string edittype = "";
             try
             {
-                HsptlApiService hsptlServ = new HsptlApiService(Loginfo);
-                ResponObj<DrugInfo?> fromapi = await hsptlServ.getDrugInfo(querycode);
+                HsptlApiService hsptlServ = new HsptlApiService();
+                ResponObject<DrugInfo?> fromapi = await hsptlServ.DrugRequest(querycode);
                 if (fromapi.returnData != null)
                 {
                     DrugInfo? fromDB = _db.DrugInfo.Where(x => x.DrugCode == querycode).FirstOrDefault();

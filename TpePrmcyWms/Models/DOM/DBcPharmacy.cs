@@ -42,8 +42,8 @@ namespace TpePrmcyWms.Models.DOM
         public virtual DbSet<MapPackOnSensor> MapPackOnSensor { get; set; }
         public virtual DbSet<Drawers> Drawers { get; set; }
         public virtual DbSet<SensorComuQuee> SensorComuQuee { get; set; }
-        public virtual DbSet<AlertMsg> AlertMsg { get; set; }
-        public virtual DbSet<ApiLog> ApiLog { get; set; }
+        public virtual DbSet<AlertNotification> AlertNotification { get; set; }
+        public virtual DbSet<MethadonBill> MethadonBill { get; set; }
         public virtual DbSet<MapPrscptOnBill> MapPrscptOnBill { get; set; }
         public virtual DbSet<MapMenuOnCbnt> MapMenuOnCbnt { get; set; }
         public virtual DbSet<VaxSkd> VaxSkd { get; set; }
@@ -52,6 +52,7 @@ namespace TpePrmcyWms.Models.DOM
         public virtual DbSet<DrugGridBatchNo> DrugGridBatchNo { get; set; }
         public virtual DbSet<UserCbntFnAuth> UserCbntFnAuth { get; set; }
         public virtual DbSet<DrugLimitedTo> DrugLimitedTo { get; set; }
+        public virtual DbSet<BalanceDiffFile> BalanceDiffFile { get; set; }
 
         
     }

@@ -12,7 +12,7 @@
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
             <div class="form-actions no-color">
-                藥櫃 / 藥品名稱 ：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" /> |                  
+                藥品名稱 / 代碼 ：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" /> |                  
                 <select name="qCbnt"
                         asp-items="@(DropValueList.Where(x=>x.Group=="cabinet" && CbntAuth.Contains(x.Value))
                     .Select(s => new SelectListItem { Value = s.Value.ToString(), Text = s.Text, Selected=s.Value==ViewBag.qCbnt.ToString() }))">

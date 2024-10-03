@@ -59,6 +59,12 @@
             <input class="form-control" value="@(ViewFunc.vDateFormat(Model.moddate, "yyyy-MM-dd"))" readonly />
         </div>
 
+        <div class="form-group">
+            <label asp-for="InTransitExpiry" class="control-label"></label>
+            <input asp-for="InTransitExpiry" class="form-control" type="number"/>
+            <span asp-validation-for="InTransitExpiry" class="text-danger"></span>
+        </div>
+
         <div class="form-group Span2Col">
             <label asp-for="StockTakeConfig_Day" class="control-label"></label>
             <div style="display:flex;">
@@ -105,7 +111,7 @@
 <script>
     //送出鈕
     function goSubmit() {
-        $(".btn").hide();
+        $(".ListCtrlPanel").hide();
         let EditModel = @Html.Raw(JsonConvert.SerializeObject(Model));
 
         EditModel.StockTakeConfig_Day = "";
@@ -117,16 +123,16 @@
         for (let i = 0; i < $("input#StockTakeConfig_TimeList").length; i += 2) {
             let t0 = $("input#StockTakeConfig_TimeList").get(i).value;
             let t1 = $("input#StockTakeConfig_TimeList").get(i + 1).value;
-            if (t0 == "" ^ t1 == "") { AlertWin("盤點設定-時段 設定錯誤"); $(".btn").show(); return false; }
+            if (t0 == "" ^ t1 == "") { AlertWin("盤點設定-時段 設定錯誤"); $(".ListCtrlPanel").show(); return false; }
             if (t0 != "") { EditModel.StockTakeConfig_Time += (t0 + "~" + t1 + ","); }
         }
 
 
         //console.log(JSON.stringify(EditModel))
         SubmitFormModel("@Url.Action("ListEdit")", EditModel, function () {
-            $("#btn_submit").click();
+            CancelEdit();
         }, function () {
-            $(".btn").show();
+            $(".ListCtrlPanel").show();
         });
     }
     //取消鈕

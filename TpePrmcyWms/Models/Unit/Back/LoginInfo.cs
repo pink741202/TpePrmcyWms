@@ -45,10 +45,11 @@ namespace TpePrmcyWms.Models.Unit.Back
                     //    AuthDetail = db.AuthCatelog.Where(x => x.EmpFid == User.Fid && x.Queryable).ToList();
                     //}
 
-                    //聯醫改個人權限,並加入每個櫃子功能                    
+                    //聯醫改個人權限,並加入每個櫃子功能
+                    int from_config = Convert.ToInt32(SysBaseServ.JsonConf("TestEnvironment:ImaginaryKioskCbntFid"));
                     List<UserCbntFnAuth> auths = db.UserCbntFnAuth.Where(x => x.EmpFid == User.Fid && x.Active).ToList();
                     if(AtCbntFid > 0) { auths.Add(new UserCbntFnAuth { MnLFid = 24, EmpFid = User.Fid, CbntFid = AtCbntFid }); }
-                    foreach (var item in auths.Where(x=>x.CbntFid == AtCbntFid))
+                    foreach (var item in auths.Where(x => x.CbntFid == AtCbntFid || x.CbntFid == (from_config > 0 ? 0 : -9))) //前後台權限
                     {
                         AuthDetail.Add(new AuthCatelog
                         {
