@@ -1,0 +1,236 @@
+﻿@model PaginatedList<TpePrmcyWms.Models.Unit.Report.StockingLog>
+@using TpePrmcyWms.Models.Unit.Back
+@using TpePrmcyWms.Models.Service
+@using Newtonsoft.Json;
+@{
+
+}
+
+<div class="ListPage_QueryArea">
+    <div class="ListPage_QueryPanel">
+        <form enctype="multipart/form-data" asp-action="InvntHsptl" method="post">
+            <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
+            <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
+            <div class="form-actions no-color">
+                藥櫃ID / 藥櫃：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" />
+                時間(起<input type="date" name="qDate1" value="@(ViewData["qDate1"])">
+                ~迄<input type="date" name="qDate2" value="@(ViewData["qDate2"])">)
+                <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
+                <input type="button" id="btn_submit2" value="下載" class="btn btn_InputSubmit" onclick="submitDownload()" /> |
+                
+            </div>
+        </form>
+    </div>
+
+    <div class="ListPage_ListPanel">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th width="20%">
+                        <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=DrugCode')">
+                            @Html.DisplayNameFor(model => model[0].operTime)
+                        </div>
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].billType)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].billTypeName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].empName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].empNo)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].CbntFid)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].CbntName)
+                    </th>
+@*                     <th class="Wd100">
+                        贈藥
+                    </th>
+                    <th class="Wd100">
+                        臨採
+                    </th>
+                    <th class="Wd100">
+                        @if (ViewBag.OperateAuths["Creatable"])
+                        {
+                            <span class="CtrlBtn btn_goAdd" onclick="EditRecord(0)">𝒩𝑒𝓌</span>
+                        }
+                    </th> *@
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td width="20%">
+                            @Html.DisplayFor(modelItem => item.operTime)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.billType)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.billTypeName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.empName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.empNo)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.CbntFid)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.CbntName)
+                        </td>
+@*                         <td class="Wd100">
+                            <span class="CtrlBtn " onclick="EditFreeTrial(@item.FID)">✔</span>
+                        </td>
+                        <td class="Wd100">
+                            <span class="CtrlBtn " onclick="EditAdHocProc(@item.FID)">✔</span>
+                        </td>
+                        <td class="Wd100">
+                            <div style="min-width:79px;width:100%;align-items:inherit;">
+                                <span class="CtrlBtn btn_goEdit" onclick="EditRecord(@item.FID)">✎</span>
+                                @if (ViewBag.OperateAuths["Deletable"])
+                                {
+                                    <span class="CtrlBtn btn_goDelete" onclick="confirmWin('是否確定刪除?', (confirmed)=>{ if (confirmed) { DeleteRecord(@item.FID); }; }) ">✘</span>
+                                }
+                            </div>
+
+                        </td> *@
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="ListPage_PagesPanel">
+        @Html.Raw(Model.PageTagHtml)
+    </div>
+</div>
+
+<div class="ListPage_EditArea Hidden">
+</div>
+
+
+<script>
+    //排序鈕特效
+    sortingAddClass("@(ViewData["sortOrder"])");
+
+    //編輯鈕
+    function EditRecord(fid) {
+        $(".ListPage_EditArea").load("@Url.Action("ListEdit")?fid=" + fid, function () {
+            $(".ListPage_QueryArea").hide();
+            $(".ListPage_EditArea").show();
+        })
+    }
+    function EditFreeTrial(fid) {
+        $(".ListPage_EditArea").load("@Url.Action("SubEditFreeTrial")?fid=" + fid, function () {
+            $(".ListPage_QueryArea").hide();
+            $(".ListPage_EditArea").show();
+        })
+    }
+    function EditAdHocProc(fid) {
+        $(".ListPage_EditArea").load("@Url.Action("SubEditAdHocProc")?fid=" + fid, function () {
+            $(".ListPage_QueryArea").hide();
+            $(".ListPage_EditArea").show();
+        })
+    }
+    //送出鈕
+    let orderCode = '123';
+    function goSubmit() {
+        $(".btn").hide();
+        //let EditModel = Html.Raw(JsonConvert.SerializeObject(orderCode));
+        SubmitFormModel("@Url.Action("ReportDownload", "ReportGenerate")", orderCode, function () {
+            $("#btn_submit").click();
+        }, function () {
+            $(".btn").show();
+        });
+    }
+    //刪檔鈕
+    function DeleteRecord(qfid) {
+        //let PostData = { __RequestVerificationToken: GetToken(), fid:5 }
+        let DeletePost = new AjaxJsonPostor("@Url.Action("ReportDownload", "ReportGenerate")", 12);
+        DeletePost.SuccessCallback = function (result) {
+            AlertWin(result.message);
+            if (result.code == 0) { $("#btn_submit").click(); }
+        }
+        DeletePost.ErrorCallback = function () {
+            //AlertWin("送出失敗");
+        }
+        DeletePost.Post();
+    }
+
+    function submitDownload() {
+        const qKeyString = $("[name=qKeyString]").val();
+        const qDate1 = $("[name=qDate1]").val();
+        const qDate2 = $("[name=qDate2]").val();
+        fetch('@Url.Action("ReportDownload", "ReportGenerate")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                qKeyString: qKeyString,
+                qDate1: qDate1 || null,
+                qDate2: qDate2 || null,
+
+            }) // 這裡是你的 orderCode
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob(); // 期待文件下載
+                }
+                //throw new Error('下載失敗');
+                alert('下載失敗');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                a.href = url;
+                a.download = `${year}-${month}-${day}-進出結存總報表(全院區)_inventory.xlsx`;  // 這裡指定文件名
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+
+    //同步醫院資料庫
+    function goQueryApi() {
+        let qstring = $("#DrugCode").val();
+        if (qstring == "") { AlertWin("請輸入藥品代碼"); return false; }
+        $(".EditPage .btn").hide();
+        let Poster = new AjaxJsonPostor("@Url.Action("ListSyncHsptlApi")", qstring);
+        Poster.SuccessCallback = function (result) {
+            //console.log(JSON.stringify(result))
+            if (result.code == "0") {
+                AlertWin(result.message);
+                CancelEdit();
+                EditRecord(result.returnData);
+            }
+            else {
+                AlertWin(result.message);
+            }
+        }
+        Poster.ErrorCallback = function () {
+            AlertWin("送出失敗");
+            $(".EditPage .btn").show();
+        }
+        Poster.Post();
+    }
+
+
+</script>

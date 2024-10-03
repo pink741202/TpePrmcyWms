@@ -6,6 +6,7 @@ namespace TpePrmcyWms.Models.Unit.Report
     {
         [Key]
         public int stockBillFid { get; set; } = 0;
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd HH:mm:ss}", ApplyFormatInEditMode = true)]
         [Display(Name = "時間")]
         public DateTime operTime { get; set; }
 
