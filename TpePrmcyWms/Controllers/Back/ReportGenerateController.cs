@@ -44,6 +44,8 @@ namespace TpePrmcyWms.Controllers.Back
             string qKeyString = model.qKeyString ?? "";
             DateTime? qDate1 = model.qDate1;
             DateTime? qDate2 = model.qDate2;
+            int? qCbnt = model.qCbnt;
+            string qDrawFid = model.qDrawFid ?? "";
 
             string fileName = DateTime.Now.ToString("yyyy-MM-dd-HHmmss.fff") + "_system.xlsx";
             string filePath = Path.Combine(_webHostEnvironment.ContentRootPath, "excel", fileName);
@@ -108,7 +110,7 @@ namespace TpePrmcyWms.Controllers.Back
                     //    records = records.Where(s => (s.DrugCode ?? "").Contains(qKeyString)).ToList();
                     //}
                     ReportService reportServices = new ReportService();
-                    var stockingLogs = reportServices.queryStockingLog(qKeyString, qDate1, qDate2);
+                    var stockingLogs = reportServices.queryStockingLog(qKeyString, qDate1, qDate2, qCbnt, qDrawFid);
 
                     foreach (var data in stockingLogs)
                     {

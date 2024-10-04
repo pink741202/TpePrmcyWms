@@ -14,6 +14,7 @@ using TpePrmcyWms.Models.Unit.Report;
 using static Dapper.SqlMapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Numeric;
 
 namespace TpePrmcyWms.Controllers.Back
 {
@@ -181,20 +182,20 @@ namespace TpePrmcyWms.Controllers.Back
         }
 
         [ActionName("InvntDrawer")]
-        public async Task<IActionResult> InvntDrawer(int? pageNum, string sortOrder, string qKeyString , DateTime? qDate1, DateTime? qDate2)
+        public async Task<IActionResult> InvntDrawer(int? pageNum, string sortOrder, string qKeyString , DateTime? qDate1, DateTime? qDate2, int? qCbnt, string qDrawFid)
         {
             IQueryable<StockingLog> obj = (from bill in _db.StockBill
                                            join emp in _db.employee on bill.modid equals emp.FID
-                                           join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
+                                           //join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
                                            join cbnt in _db.Cabinet on bill.CbntFid equals cbnt.FID
-                                           join draw in _db.Drawers on cabinet.FID equals draw.FID
+                                           join draw in _db.Drawers on cbnt.FID equals draw.CbntFid
                                            join mnlf in _db.MenuLeft on bill.BillType equals mnlf.OperCode
                                            join mapPrscptOnbill in _db.MapPrscptOnBill on bill.FID equals mapPrscptOnbill.StockbillFid
                                            join prscptBill in _db.PrscptBill on mapPrscptOnbill.PrscptFid equals prscptBill.FID
                                            where (!qDate1.HasValue || bill.moddate >= qDate1.Value)
-                                           && (!qDate2.HasValue || bill.moddate <= qDate2.Value)
-                                           && (string.IsNullOrEmpty(qKeyString) || EF.Functions.Like(cbnt.FID.ToString(), $"%{qKeyString}%") ||
-                                           EF.Functions.Like(cbnt.CbntName, $"%{qKeyString}%"))
+                                           && (!qDate2.HasValue || bill.moddate <= qDate2.Value.AddDays(1))
+                                           && (qCbnt == null || cbnt.FID.ToString().Equals(qCbnt.ToString()))
+                                           && (qDrawFid == null || draw.FID.ToString().Equals(qDrawFid.ToString()))
                                            select new StockingLog
                                            {
                                                stockBillFid = bill.FID,
@@ -247,7 +248,8 @@ namespace TpePrmcyWms.Controllers.Back
             {
                 ViewData["qDate2"] = ((DateTime)qDate2).ToString("yyyy-MM-dd");
             }
-
+            ViewData["qCbnt"] = qCbnt;
+            ViewData["qDrawFid"] = qDrawFid;
 
             #endregion
 

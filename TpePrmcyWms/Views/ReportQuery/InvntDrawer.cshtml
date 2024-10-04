@@ -3,7 +3,8 @@
 @using TpePrmcyWms.Models.Service
 @using Newtonsoft.Json;
 @{
-
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "cabinet", "drawernosub", "drugfullquery" });
+    List<SelectListGroup> CbntGroup = DropValueList.Where(x => x.Group == "cabinet").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
 }
 
 <div class="ListPage_QueryArea">
@@ -12,7 +13,18 @@
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
             <div class="form-actions no-color">
-                藥櫃ID / 藥櫃：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" />
+           藥櫃：<select name="qCbnt" id="qCbnt"
+                        asp-items="@(DropValueList.Where(x=>x.Group=="cabinet")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==(ViewBag.qCbnt != null ? ViewBag.qCbnt.ToString() : "")}))">
+                    <option value="">請選擇</option>
+                </select>
+
+                抽屜：
+                <select name="qDrawFid" id="qDrawFid"
+                        asp-items="@(DropValueList.Where(x=>x.Group=="drawernosub")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==(ViewBag.qDrawFid != null?ViewBag.qDrawFid.ToString():""), Group=CbntGroup.Where(x=>x.Name==s.UpGroup).First() }))">
+                    <option value="">請選擇</option>
+                </select>
                 時間(起<input type="date" name="qDate1" value="@(ViewData["qDate1"])">
                 ~迄<input type="date" name="qDate2" value="@(ViewData["qDate2"])">)
                 <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
@@ -32,22 +44,22 @@
                         </div>
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].billType)
-                    </th>
-                    <th>
                         @Html.DisplayNameFor(model => model[0].billTypeName)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].empName)
-                    </th>
-                    <th>
-                        @Html.DisplayNameFor(model => model[0].empNo)
-                    </th>
-                    <th>
-                        @Html.DisplayNameFor(model => model[0].CbntFid)
-                    </th>
-                    <th>
                         @Html.DisplayNameFor(model => model[0].CbntName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].DrawNo)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].QtyIn)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].QtyOut)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].QtyBefore)
                     </th>
 @*                     <th class="Wd100">
                         贈藥
@@ -71,22 +83,22 @@
                             @Html.DisplayFor(modelItem => item.operTime)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.billType)
-                        </td>
-                        <td>
                             @Html.DisplayFor(modelItem => item.billTypeName)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.empName)
-                        </td>
-                        <td>
-                            @Html.DisplayFor(modelItem => item.empNo)
-                        </td>
-                        <td>
-                            @Html.DisplayFor(modelItem => item.CbntFid)
-                        </td>
-                        <td>
                             @Html.DisplayFor(modelItem => item.CbntName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.DrawNo)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.QtyIn)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.QtyOut)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.QtyBefore)
                         </td>
 @*                         <td class="Wd100">
                             <span class="CtrlBtn " onclick="EditFreeTrial(@item.FID)">✔</span>
@@ -166,11 +178,27 @@
         }
         DeletePost.Post();
     }
+    //藥櫃 連動 藥格
+    $("#qCbnt").change(function () {
+        let selectedName = $("#qCbnt option:selected").text();
+        $("#qDrawFid optgroup").each(function () {
+            if ($(this).attr("label") == selectedName) { $(this).show(); }
+            else { $(this).hide(); }
+        });
+        if ($("#qDrawFid option:selected").parent().css('display') == "none") { $("#qDrawFid").val(""); }
+        $("#qDrawFid").change();
+    });
 
     function submitDownload() {
-        const qKeyString = $("[name=qKeyString]").val();
+        const qKeyString = "";
         const qDate1 = $("[name=qDate1]").val();
         const qDate2 = $("[name=qDate2]").val();
+        const qCbnt = $("[name=qCbnt]").val();
+        const qDrawFid = $("[name=qDrawFid]").val();
+        let DrawName = $("[name=qDrawFid] option:selected").text().replace("#","");
+        if (DrawName == "請選擇") {
+            DrawName = "";
+        }
         fetch('@Url.Action("ReportDownload", "ReportGenerate")', {
             method: 'POST',
             headers: {
@@ -180,6 +208,8 @@
                 qKeyString: qKeyString,
                 qDate1: qDate1 || null,
                 qDate2: qDate2 || null,
+                qCbnt: qCbnt || null,
+                qDrawFid: qDrawFid,
 
             }) // 這裡是你的 orderCode
         })
@@ -198,7 +228,7 @@
                 const month = String(today.getMonth() + 1).padStart(2, '0');
                 const day = String(today.getDate()).padStart(2, '0');
                 a.href = url;
-                a.download = `${year}-${month}-${day}-單一藥櫃的藥櫃抽屜報表_Drawer1.xlsx`;  // 這裡指定文件名
+                a.download = `${year}-${month}-${day}-單一藥櫃的藥櫃抽屜報表_Drawer${DrawName}.xlsx`;  // 這裡指定文件名
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -231,6 +261,8 @@
         }
         Poster.Post();
     }
-
+    $(document).ready(function () {
+        $("#qCbnt").change();
+    })
 
 </script>

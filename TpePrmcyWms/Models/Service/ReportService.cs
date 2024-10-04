@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Numeric;
 using System.Xml.Linq;
 using TpePrmcyWms.Models.DOM;
 using TpePrmcyWms.Models.Unit.Back;
@@ -10,20 +11,20 @@ namespace TpePrmcyWms.Models.Service
     public class ReportService
     {
         private readonly DBcPharmacy _db = new DBcPharmacy();
-        public IQueryable<StockingLog> queryStockingLog(string? qKeyString, DateTime? qmoddate1, DateTime? qmoddate2)
+        public IQueryable<StockingLog> queryStockingLog(string? qKeyString, DateTime? qmoddate1, DateTime? qmoddate2, int? qCbnt, string qDrawFid)
         {
             var query = from bill in _db.StockBill
                         join emp in _db.employee on bill.modid equals emp.FID
-                        join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
+                        //join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
                         join cbnt in _db.Cabinet on bill.CbntFid equals cbnt.FID
-                        join draw in _db.Drawers on cabinet.FID equals draw.FID
+                        join draw in _db.Drawers on cbnt.FID equals draw.CbntFid
                         join mnlf in _db.MenuLeft on bill.BillType equals mnlf.OperCode
                         join mapPrscptOnbill in _db.MapPrscptOnBill on bill.FID equals mapPrscptOnbill.StockbillFid
                         join prscptBill in _db.PrscptBill on mapPrscptOnbill.PrscptFid equals prscptBill.FID
                         where (!qmoddate1.HasValue || bill.moddate >= qmoddate1.Value)
-                        && (!qmoddate2.HasValue || bill.moddate <= qmoddate2.Value)
-                        && (string.IsNullOrEmpty(qKeyString) || EF.Functions.Like(cbnt.FID.ToString(), $"%{qKeyString}%") ||
-                        EF.Functions.Like(cbnt.CbntName, $"%{qKeyString}%"))
+                        && (!qmoddate2.HasValue || bill.moddate <= qmoddate2.Value.AddDays(1))
+                        && (qCbnt == null || cbnt.FID.ToString().Equals(qCbnt.ToString()))
+                        && (qDrawFid == "" || draw.FID.ToString().Equals(qDrawFid.ToString()))
                         select new StockingLog
                         {
                             stockBillFid = bill.FID,
