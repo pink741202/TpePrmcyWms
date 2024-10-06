@@ -11,7 +11,7 @@ namespace TpePrmcyWms.Models.Service
     public class ReportService
     {
         private readonly DBcPharmacy _db = new DBcPharmacy();
-        public IQueryable<StockingLog> queryStockingLog(string? qKeyString, DateTime? qmoddate1, DateTime? qmoddate2, int? qCbnt, string qDrawFid)
+        public IQueryable<StockingLog> queryStockingLog(string? qKeyString, DateTime? qmoddate1, DateTime? qmoddate2, int? qCbnt, string qDrawFid, string qbilltype)
         {
             var query = from bill in _db.StockBill
                         join emp in _db.employee on bill.modid equals emp.FID
@@ -25,6 +25,7 @@ namespace TpePrmcyWms.Models.Service
                         && (!qmoddate2.HasValue || bill.moddate <= qmoddate2.Value.AddDays(1))
                         && (qCbnt == null || cbnt.FID.ToString().Equals(qCbnt.ToString()))
                         && (qDrawFid == "" || draw.FID.ToString().Equals(qDrawFid.ToString()))
+                        && (string.IsNullOrEmpty(qbilltype) || bill.BillType.ToLower().Equals(qbilltype.ToLower()))
                         select new StockingLog
                         {
                             stockBillFid = bill.FID,
@@ -62,7 +63,7 @@ namespace TpePrmcyWms.Models.Service
                             ExpireDate = bill.ExpireDate, //效期
 
                         };
-            var result = query.ToList(); // 在這裡執行查詢並獲得結果
+            List<StockingLog> result = query.ToList(); // 在這裡執行查詢並獲得結果
             foreach (var item in result)
             {
                 List<string> transCode = new List<string>() { "TG1", "TG2", "TI1", "TI2" };

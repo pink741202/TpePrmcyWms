@@ -1,4 +1,4 @@
-﻿@model PaginatedList<TpePrmcyWms.Models.Unit.Report.StockingLog>
+﻿@model PaginatedList<TpePrmcyWms.Models.Unit.Report.UserLog>
 @using TpePrmcyWms.Models.Unit.Back
 @using TpePrmcyWms.Models.Service
 @using Newtonsoft.Json;
@@ -8,7 +8,7 @@
 
 <div class="ListPage_QueryArea">
     <div class="ListPage_QueryPanel">
-        <form enctype="multipart/form-data" asp-action="InvntHsptl" method="post">
+        <form enctype="multipart/form-data" asp-action="UserLog" method="post">
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
             <div class="form-actions no-color">@* 
@@ -28,39 +28,39 @@
                 <tr>
                     <th width="20%">
                         <div class="btn_SortOrderCtrl" onclick="goListQuery('sortOrder=DrugCode')">
-                            @Html.DisplayNameFor(model => model[0].operTime)
+                            @Html.DisplayNameFor(model => model[0].LogTime)
                         </div>
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].billTypeName)
+                        @Html.DisplayNameFor(model => model[0].empFid)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].CbntName)
+                        @Html.DisplayNameFor(model => model[0].name)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].DrawNo)
+                        @Html.DisplayNameFor(model => model[0].LinkMethod)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].QtyIn)
+                        @Html.DisplayNameFor(model => model[0].LogType)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].QtyOut)
+                        @Html.DisplayNameFor(model => model[0].OperateType)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model[0].QtyBefore)
+                        @Html.DisplayNameFor(model => model[0].LogMsg)
                     </th>
-@*                     <th class="Wd100">
-                        贈藥
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].ErrorClass)
                     </th>
-                    <th class="Wd100">
-                        臨採
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].ErrorFunction)
                     </th>
-                    <th class="Wd100">
-                        @if (ViewBag.OperateAuths["Creatable"])
-                        {
-                            <span class="CtrlBtn btn_goAdd" onclick="EditRecord(0)">𝒩𝑒𝓌</span>
-                        }
-                    </th> *@
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].ErrorMsg)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model[0].ErrorTrace)
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -68,42 +68,39 @@
                 {
                     <tr>
                         <td width="20%">
-                            @Html.DisplayFor(modelItem => item.operTime)
+                            @Html.DisplayFor(modelItem => item.LogTime)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.billTypeName)
+                            @Html.DisplayFor(modelItem => item.empFid)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.CbntName)
+                            @Html.DisplayFor(modelItem => item.name)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.DrawNo)
+                            @Html.DisplayFor(modelItem => item.LinkMethod)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.QtyIn)
+                            @Html.DisplayFor(modelItem => item.LogType)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.QtyOut)
+                            @Html.DisplayFor(modelItem => item.OperateType)
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.QtyBefore)
+                            @Html.DisplayFor(modelItem => item.LogMsg)
                         </td>
-@*                         <td class="Wd100">
-                            <span class="CtrlBtn " onclick="EditFreeTrial(@item.FID)">✔</span>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ErrorClass)
                         </td>
-                        <td class="Wd100">
-                            <span class="CtrlBtn " onclick="EditAdHocProc(@item.FID)">✔</span>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ErrorFunction)
                         </td>
-                        <td class="Wd100">
-                            <div style="min-width:79px;width:100%;align-items:inherit;">
-                                <span class="CtrlBtn btn_goEdit" onclick="EditRecord(@item.FID)">✎</span>
-                                @if (ViewBag.OperateAuths["Deletable"])
-                                {
-                                    <span class="CtrlBtn btn_goDelete" onclick="confirmWin('是否確定刪除?', (confirmed)=>{ if (confirmed) { DeleteRecord(@item.FID); }; }) ">✘</span>
-                                }
-                            </div>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ErrorMsg)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ErrorTrace)
+                        </td>
 
-                        </td> *@
                     </tr>
                 }
             </tbody>
@@ -171,7 +168,7 @@
         const qKeyString = "";
         const qDate1 = $("[name=qDate1]").val();
         const qDate2 = $("[name=qDate2]").val();
-        fetch('@Url.Action("ReportDownload", "ReportGenerate")', {
+        fetch('@Url.Action("UserLogReportDownload", "ReportGenerate")', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -198,7 +195,7 @@
                 const month = String(today.getMonth() + 1).padStart(2, '0');
                 const day = String(today.getDate()).padStart(2, '0');
                 a.href = url;
-                a.download = `${year}-${month}-${day}-進出結存總報表(全院區)_inventory.xlsx`;  // 這裡指定文件名
+                a.download = `${year}-${month}-${day}-系統報表(人員使用狀況)_system.xlsx`;  // 這裡指定文件名
                 document.body.appendChild(a);
                 a.click();
                 a.remove();

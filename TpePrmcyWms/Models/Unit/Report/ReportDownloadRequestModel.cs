@@ -7,5 +7,6 @@
         public DateTime? qDate2 { get; set; }
         public int? qCbnt { get; set; }
         public string? qDrawFid { get; set; }
+        public string? qbilltype { get; set; }
     }
 }

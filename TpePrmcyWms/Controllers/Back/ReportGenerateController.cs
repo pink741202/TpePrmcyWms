@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using TpePrmcyWms.Models.Unit.Report;
 using Microsoft.CodeAnalysis.FlowAnalysis;
+using Microsoft.AspNetCore.Http.HttpResults;
 //using OfficeOpenXml.Core.ExcelPackage;
 
 namespace TpePrmcyWms.Controllers.Back
@@ -46,7 +47,7 @@ namespace TpePrmcyWms.Controllers.Back
             DateTime? qDate2 = model.qDate2;
             int? qCbnt = model.qCbnt;
             string qDrawFid = model.qDrawFid ?? "";
-
+            string qbilltype = model.qbilltype ?? "";
             string fileName = DateTime.Now.ToString("yyyy-MM-dd-HHmmss.fff") + "_system.xlsx";
             string filePath = Path.Combine(_webHostEnvironment.ContentRootPath, "excel", fileName);
 
@@ -110,7 +111,7 @@ namespace TpePrmcyWms.Controllers.Back
                     //    records = records.Where(s => (s.DrugCode ?? "").Contains(qKeyString)).ToList();
                     //}
                     ReportService reportServices = new ReportService();
-                    var stockingLogs = reportServices.queryStockingLog(qKeyString, qDate1, qDate2, qCbnt, qDrawFid);
+                    var stockingLogs = reportServices.queryStockingLog(qKeyString, qDate1, qDate2, qCbnt, qDrawFid, qbilltype);
 
                     foreach (var data in stockingLogs)
                     {
@@ -149,6 +150,115 @@ namespace TpePrmcyWms.Controllers.Back
                         sheet1.Cells[start, 33].Value = data.BatchNo; //藥品批號
                         sheet1.Cells[start, 34].Value = data.ExpireDate; //效期
                         sheet1.Cells[start, 35].Value = ""; //系統通知內容
+                        start++;
+                    }
+
+                    #endregion
+
+                    sheet1.Cells[sheet1.Dimension.Address].AutoFitColumns();
+
+                    using (FileStream createStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                    {
+                        ep.SaveAs(createStream);
+                    }
+                }
+
+                Stream fileStream = new FileStream(filePath, FileMode.Open);
+
+                if (fileStream == null)
+                    throw new Exception("路徑檔案未找到:" + fileName);
+
+                //return File(fileStream, "application/octet-stream", fileName);
+                return File(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                TempData["AlertMessage"] = "下載失敗\n" + ex.Message;
+                return RedirectToAction("ReportQuery");
+            }
+        }
+
+        [HttpPost]
+        public IActionResult UserLogReportDownload([FromBody] ReportDownloadRequestModel? model)
+        {
+            model ??= new ReportDownloadRequestModel();
+            string qKeyString = model.qKeyString ?? "";
+            DateTime? qDate1 = model.qDate1;
+            DateTime? qDate2 = model.qDate2;
+            int? qCbnt = model.qCbnt;
+            string qDrawFid = model.qDrawFid ?? "";
+            string qbilltype = model.qbilltype ?? "";
+            string fileName = DateTime.Now.ToString("yyyy-MM-dd-HHmmss.fff") + "_system.xlsx";
+            string filePath = Path.Combine(_webHostEnvironment.ContentRootPath, "excel", fileName);
+
+            if (!System.IO.Directory.Exists(Path.Combine(_webHostEnvironment.ContentRootPath, "excel")))
+            {
+                System.IO.Directory.CreateDirectory(Path.Combine(_webHostEnvironment.ContentRootPath, "excel"));
+            }
+            try
+            {
+                using (ExcelPackage ep = new ExcelPackage())
+                {
+                    ep.Workbook.Worksheets.Add("System");
+
+                    ExcelWorksheet sheet1 = ep.Workbook.Worksheets[1];
+
+                    #region EXCEL DATA
+
+                    // Title
+                    sheet1.Cells[1, 1].Value = "訊息時間";
+                    sheet1.Cells[1, 2].Value = "使用者ID";
+                    sheet1.Cells[1, 3].Value = "使用者";
+                    sheet1.Cells[1, 4].Value = "操作頁面";
+                    sheet1.Cells[1, 5].Value = "紀錄類型";
+                    sheet1.Cells[1, 6].Value = "操作類型";
+                    sheet1.Cells[1, 7].Value = "操作訊息";
+                    sheet1.Cells[1, 8].Value = "操作結果";
+                    sheet1.Cells[1, 9].Value = "發生錯誤的物件";
+                    sheet1.Cells[1, 10].Value = "發生錯誤的功能";
+                    sheet1.Cells[1, 11].Value = "錯誤訊息";
+                    sheet1.Cells[1, 12].Value = "錯誤軌跡";
+
+                    int start = 2;
+                    UserLog reportServices = new UserLog();
+                    IQueryable<UserLog> obj = from log in _db.OperateLog
+                                              join emp in _db.employee on log.empFid equals emp.FID
+                                              where log.LogType == "operate"
+                                              && (log.OperateType == "L" || log.OperateType == "DrawOpen")
+                                              && (!qDate1.HasValue || log.LogTime >= qDate1.Value)
+                                              && (!qDate2.HasValue || log.LogTime <= qDate2.Value.AddDays(1))
+                                              select new UserLog
+                                              {
+                                                  UserLogFID = log.FID,
+                                                  empFid = log.empFid,
+                                                  name = emp.name,
+                                                  LinkMethod = log.LinkMethod,
+                                                  LogType = log.LogType,
+                                                  OperateType = log.OperateType,
+                                                  LogMsg = log.LogMsg,
+                                                  OperateSuccess = log.OperateSuccess,
+                                                  ErrorClass = log.ErrorClass,
+                                                  ErrorFunction = log.ErrorFunction,
+                                                  ErrorMsg = log.ErrorMsg,
+                                                  ErrorTrace = log.ErrorTrace,
+                                                  LogTime = log.LogTime,
+                                                  comFid = log.comFid,
+                                              };
+
+                    foreach (var data in obj)
+                    {
+                        sheet1.Cells[start, 1].Value = data.LogTime.ToString("yyyy-MM-dd HH:mm:ss"); //訊息時間
+                        sheet1.Cells[start, 2].Value = data.empFid; //使用者ID
+                        sheet1.Cells[start, 3].Value = data.name; //使用者
+                        sheet1.Cells[start, 4].Value = data.LinkMethod; //操作頁面
+                        sheet1.Cells[start, 5].Value = data.LogType; //紀錄類型
+                        sheet1.Cells[start, 6].Value = data.OperateType; //操作類型
+                        sheet1.Cells[start, 7].Value = data.LogMsg; //操作訊息
+                        sheet1.Cells[start, 8].Value = data.OperateSuccess; //操作結果
+                        sheet1.Cells[start, 9].Value = data.ErrorClass; //發生錯誤的物件
+                        sheet1.Cells[start, 10].Value = data.ErrorFunction; //發生錯誤的功能
+                        sheet1.Cells[start, 11].Value = data.ErrorMsg; //錯誤訊息
+                        sheet1.Cells[start, 12].Value = data.ErrorTrace; //錯誤軌跡
                         start++;
                     }
 

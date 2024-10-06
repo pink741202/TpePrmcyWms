@@ -8,7 +8,7 @@
 
 <div class="ListPage_QueryArea">
     <div class="ListPage_QueryPanel">
-        <form enctype="multipart/form-data" asp-action="InvntHsptl" method="post">
+        <form enctype="multipart/form-data" asp-action="InvnRecord" method="post">
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
             <div class="form-actions no-color">@* 
@@ -198,7 +198,7 @@
                 const month = String(today.getMonth() + 1).padStart(2, '0');
                 const day = String(today.getDate()).padStart(2, '0');
                 a.href = url;
-                a.download = `${year}-${month}-${day}-進出結存總報表(全院區)_inventory.xlsx`;  // 這裡指定文件名
+                a.download = `${year}-${month}-${day}-進出結存總報表_每筆進出貨記錄_inventory.xlsx`;  // 這裡指定文件名
                 document.body.appendChild(a);
                 a.click();
                 a.remove();

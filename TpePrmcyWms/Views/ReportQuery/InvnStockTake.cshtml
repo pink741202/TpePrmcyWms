@@ -3,16 +3,21 @@
 @using TpePrmcyWms.Models.Service
 @using Newtonsoft.Json;
 @{
-
+    List<vSelectOptions> DropValueList = ViewFunc.SelectFidToValue(new List<string>() { "cabinet", "drawernosub", "drugfullquery" });
+    List<SelectListGroup> CbntGroup = DropValueList.Where(x => x.Group == "cabinet").Select(x => new SelectListGroup() { Name = x.Text }).ToList();
 }
 
 <div class="ListPage_QueryArea">
     <div class="ListPage_QueryPanel">
-        <form enctype="multipart/form-data" asp-action="InvntHsptl" method="post">
+        <form enctype="multipart/form-data" asp-action="InvnStockTake" method="post">
             <input type="hidden" name="pageNum" id="pageNum" value="@(Model.PageIndex)" />
             <input type="hidden" name="sortOrder" id="sortOrder" value="@(ViewData["sortOrder"])" />
-            <div class="form-actions no-color">@* 
-                藥櫃ID / 藥櫃：<input type="text" name="qKeyString" value="@ViewData["qKeyString"]" /> *@
+            <div class="form-actions no-color">
+           藥櫃：<select name="qCbnt" id="qCbnt"
+                        asp-items="@(DropValueList.Where(x=>x.Group=="cabinet")
+                    .Select(s => new SelectListItem { Value = s.Value.ToString(), Text=s.Text, Selected=s.Value==(ViewBag.qCbnt != null ? ViewBag.qCbnt.ToString() : "")}))">
+                    <option value="">請選擇</option>
+                </select>
                 時間(起<input type="date" name="qDate1" value="@(ViewData["qDate1"])">
                 ~迄<input type="date" name="qDate2" value="@(ViewData["qDate2"])">)
                 <input type="submit" id="btn_submit" value="查詢" class="btn btn_InputSubmit" /> |
@@ -166,11 +171,25 @@
         }
         DeletePost.Post();
     }
+    // //藥櫃 連動 藥格
+    // $("#qCbnt").change(function () {
+    //     let selectedName = $("#qCbnt option:selected").text();
+    //     $("#qDrawFid optgroup").each(function () {
+    //         if ($(this).attr("label") == selectedName) { $(this).show(); }
+    //         else { $(this).hide(); }
+    //     });
+    //     if ($("#qDrawFid option:selected").parent().css('display') == "none") { $("#qDrawFid").val(""); }
+    //     $("#qDrawFid").change();
+    // });
 
     function submitDownload() {
         const qKeyString = "";
         const qDate1 = $("[name=qDate1]").val();
         const qDate2 = $("[name=qDate2]").val();
+        const qCbnt = $("[name=qCbnt]").val();
+        const qDrawFid = "";
+        const qbilltype = "STK";
+
         fetch('@Url.Action("ReportDownload", "ReportGenerate")', {
             method: 'POST',
             headers: {
@@ -180,6 +199,9 @@
                 qKeyString: qKeyString,
                 qDate1: qDate1 || null,
                 qDate2: qDate2 || null,
+                qCbnt: qCbnt || null,
+                qDrawFid: qDrawFid,
+                qbilltype: qbilltype,
 
             }) // 這裡是你的 orderCode
         })
@@ -198,7 +220,7 @@
                 const month = String(today.getMonth() + 1).padStart(2, '0');
                 const day = String(today.getDate()).padStart(2, '0');
                 a.href = url;
-                a.download = `${year}-${month}-${day}-進出結存總報表(全院區)_inventory.xlsx`;  // 這裡指定文件名
+                a.download = `${year}-${month}-${day}-藥櫃進出盤點結存報表(僅盤點)_inventory.xlsx`;  // 這裡指定文件名
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -231,6 +253,8 @@
         }
         Poster.Post();
     }
-
+    // $(document).ready(function () {
+    //     $("#qCbnt").change();
+    // })
 
 </script>

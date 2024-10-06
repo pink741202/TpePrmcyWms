@@ -15,6 +15,8 @@ using static Dapper.SqlMapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using OfficeOpenXml.FormulaParsing.Excel.Functions.Numeric;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Math;
+using System.Reflection.Emit;
 
 namespace TpePrmcyWms.Controllers.Back
 {
@@ -279,14 +281,14 @@ namespace TpePrmcyWms.Controllers.Back
         {
             IQueryable<StockingLog> obj = (from bill in _db.StockBill
                                            join emp in _db.employee on bill.modid equals emp.FID
-                                           join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
+                                           //join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
                                            join cbnt in _db.Cabinet on bill.CbntFid equals cbnt.FID
-                                           join draw in _db.Drawers on cabinet.FID equals draw.FID
+                                           join draw in _db.Drawers on cbnt.FID equals draw.CbntFid
                                            join mnlf in _db.MenuLeft on bill.BillType equals mnlf.OperCode
                                            join mapPrscptOnbill in _db.MapPrscptOnBill on bill.FID equals mapPrscptOnbill.StockbillFid
                                            join prscptBill in _db.PrscptBill on mapPrscptOnbill.PrscptFid equals prscptBill.FID
                                            where (!qDate1.HasValue || bill.moddate >= qDate1.Value)
-                                           && (!qDate2.HasValue || bill.moddate <= qDate2.Value)
+                                           && (!qDate2.HasValue || bill.moddate <= qDate2.Value.AddDays(1))
                                            && (string.IsNullOrEmpty(qKeyString) || EF.Functions.Like(cbnt.FID.ToString(), $"%{qKeyString}%") ||
                                            EF.Functions.Like(cbnt.CbntName, $"%{qKeyString}%"))
                                            select new StockingLog
@@ -366,6 +368,347 @@ namespace TpePrmcyWms.Controllers.Back
 
         }
 
+        [ActionName("InvnRecord")]
+        public async Task<IActionResult> InvnRecord(int? pageNum, string sortOrder, string qKeyString, DateTime? qDate1, DateTime? qDate2)
+        {
+            IQueryable<StockingLog> obj = (from bill in _db.StockBill
+                                           join emp in _db.employee on bill.modid equals emp.FID
+                                           //join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
+                                           join cbnt in _db.Cabinet on bill.CbntFid equals cbnt.FID
+                                           join draw in _db.Drawers on cbnt.FID equals draw.CbntFid
+                                           join mnlf in _db.MenuLeft on bill.BillType equals mnlf.OperCode
+                                           join mapPrscptOnbill in _db.MapPrscptOnBill on bill.FID equals mapPrscptOnbill.StockbillFid
+                                           join prscptBill in _db.PrscptBill on mapPrscptOnbill.PrscptFid equals prscptBill.FID
+                                           where (!qDate1.HasValue || bill.moddate >= qDate1.Value)
+                                           && (!qDate2.HasValue || bill.moddate <= qDate2.Value.AddDays(1))
+                                           && (string.IsNullOrEmpty(qKeyString) || EF.Functions.Like(cbnt.FID.ToString(), $"%{qKeyString}%") ||
+                                           EF.Functions.Like(cbnt.CbntName, $"%{qKeyString}%"))
+                                           select new StockingLog
+                                           {
+                                               stockBillFid = bill.FID,
+                                               operTime = bill.moddate ?? DateTime.Now, //時間
+                                               billType = bill.BillType, //類型
+                                               billTypeName = mnlf.CatelogName, //類型名稱
+                                               empName = emp.name, //藥師
+                                               empNo = emp.emp_no ?? "", //藥師編號
+                                               CbntFid = cbnt.FID, //藥櫃ID
+                                               CbntName = cbnt.CbntName, //藥櫃
+                                               DrawNo = draw.No.ToString(), //櫃位號碼
+                                               QtyIn = bill.TradeType ? bill.Qty : 0, //進貨數量
+                                               QtyOut = bill.TradeType ? 0 : bill.Qty, //出貨數量
+                                               QtyBefore = bill.SysChkQty + (bill.Qty * (bill.TradeType ? -1 : 1)), //原始數量
+                                               UserChk1 = bill.UserChk1Qty, //一次盤點數量
+                                               UserChk2 = bill.UserChk2Qty, //二次盤點數量
+                                               UserChkErr = !(bill.UserChk1Qty == null || bill.SysChkQty == bill.UserChk1Qty || bill.SysChkQty == bill.UserChk2Qty), //盤點錯誤
+                                               SysChkQty = bill.SysChkQty, //剩餘總數
+                                               OperFinish = true, //操作完成
+                                               DrugCode = bill.DrugCode, //藥物編碼
+                                               DrugName = bill.DrugName.Trim(), //藥物名稱
+                                               OperQty = bill.Qty, //操作總量
+                                               FromFid = bill.FromFid, //來源藥櫃
+                                               PharmCode = prscptBill.Pharmarcy, //藥局簡碼
+                                               PrscptNo = prscptBill.PrscptNo, //領藥號
+                                               PrscptDate = prscptBill.PrscptDate, //出藥日期
+                                               OrderSeq = prscptBill.OrderSeq, //醫令序號
+                                               CtrlDrugGrand = prscptBill.CtrlDrugGrand, //管制藥等級
+                                               PatientNo = prscptBill.PatientNo, //病歷號碼
+                                               PatientSeq = prscptBill.PatientSeq, //病人序號
+                                               PatientName = prscptBill.PatientName, //病人姓名
+                                               DrName = prscptBill.DrName, //醫師姓名
+                                               BedCode = prscptBill.BedCode, //床號
+                                               BatchNo = bill.BatchNo, //藥品批號
+                                               ExpireDate = bill.ExpireDate, //效期
 
+                                           });
+
+            #region 查詢
+            ViewData["qKeyString"] = qKeyString ?? "";
+
+            ViewData["qDate1"] = qDate1;
+            if (qDate1 != null)
+            {
+                ViewData["qDate1"] = ((DateTime)qDate1).ToString("yyyy-MM-dd");
+            }
+
+            ViewData["qDate2"] = qDate2;
+            if (qDate2 != null)
+            {
+                ViewData["qDate2"] = ((DateTime)qDate2).ToString("yyyy-MM-dd");
+            }
+
+
+            #endregion
+
+            #region 排序            
+            switch (sortOrder)
+            {
+                case "DrugCode_desc": obj = obj.OrderByDescending(s => s.DrugCode); break;
+                case "DrugCode": obj = obj.OrderBy(s => s.DrugCode); break;
+                default: sortOrder = "DrugCode"; obj = obj.OrderBy(s => s.DrugCode); break;
+            }
+            ViewData["sortOrder"] = sortOrder;
+            #endregion
+
+            #region 分頁
+            if (qKeyString != null)
+            {
+                pageNum = 1;
+            }
+            #endregion
+
+            return View(await PaginatedList<StockingLog>.CreateAsync(obj.AsNoTracking(), pageNum ?? 1, Loginfo.User.pagesize));
+
+        }
+
+        [ActionName("InvnDrawerRec")]
+        public async Task<IActionResult> InvnDrawerRec(int? pageNum, string sortOrder, string qKeyString, DateTime? qDate1, DateTime? qDate2, int? qCbnt)
+        {
+            IQueryable<StockingLog> obj = (from bill in _db.StockBill
+                                           join emp in _db.employee on bill.modid equals emp.FID
+                                           //join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
+                                           join cbnt in _db.Cabinet on bill.CbntFid equals cbnt.FID
+                                           join draw in _db.Drawers on cbnt.FID equals draw.CbntFid
+                                           join mnlf in _db.MenuLeft on bill.BillType equals mnlf.OperCode
+                                           join mapPrscptOnbill in _db.MapPrscptOnBill on bill.FID equals mapPrscptOnbill.StockbillFid
+                                           join prscptBill in _db.PrscptBill on mapPrscptOnbill.PrscptFid equals prscptBill.FID
+                                           where (!qDate1.HasValue || bill.moddate >= qDate1.Value)
+                                           && (!qDate2.HasValue || bill.moddate <= qDate2.Value.AddDays(1))
+                                           && (qCbnt == null || cbnt.FID.ToString().Equals(qCbnt.ToString()))
+                                           select new StockingLog
+                                           {
+                                               stockBillFid = bill.FID,
+                                               operTime = bill.moddate ?? DateTime.Now, //時間
+                                               billType = bill.BillType, //類型
+                                               billTypeName = mnlf.CatelogName, //類型名稱
+                                               empName = emp.name, //藥師
+                                               empNo = emp.emp_no ?? "", //藥師編號
+                                               CbntFid = cbnt.FID, //藥櫃ID
+                                               CbntName = cbnt.CbntName, //藥櫃
+                                               DrawNo = draw.No.ToString(), //櫃位號碼
+                                               QtyIn = bill.TradeType ? bill.Qty : 0, //進貨數量
+                                               QtyOut = bill.TradeType ? 0 : bill.Qty, //出貨數量
+                                               QtyBefore = bill.SysChkQty + (bill.Qty * (bill.TradeType ? -1 : 1)), //原始數量
+                                               UserChk1 = bill.UserChk1Qty, //一次盤點數量
+                                               UserChk2 = bill.UserChk2Qty, //二次盤點數量
+                                               UserChkErr = !(bill.UserChk1Qty == null || bill.SysChkQty == bill.UserChk1Qty || bill.SysChkQty == bill.UserChk2Qty), //盤點錯誤
+                                               SysChkQty = bill.SysChkQty, //剩餘總數
+                                               OperFinish = true, //操作完成
+                                               DrugCode = bill.DrugCode, //藥物編碼
+                                               DrugName = bill.DrugName.Trim(), //藥物名稱
+                                               OperQty = bill.Qty, //操作總量
+                                               FromFid = bill.FromFid, //來源藥櫃
+                                               PharmCode = prscptBill.Pharmarcy, //藥局簡碼
+                                               PrscptNo = prscptBill.PrscptNo, //領藥號
+                                               PrscptDate = prscptBill.PrscptDate, //出藥日期
+                                               OrderSeq = prscptBill.OrderSeq, //醫令序號
+                                               CtrlDrugGrand = prscptBill.CtrlDrugGrand, //管制藥等級
+                                               PatientNo = prscptBill.PatientNo, //病歷號碼
+                                               PatientSeq = prscptBill.PatientSeq, //病人序號
+                                               PatientName = prscptBill.PatientName, //病人姓名
+                                               DrName = prscptBill.DrName, //醫師姓名
+                                               BedCode = prscptBill.BedCode, //床號
+                                               BatchNo = bill.BatchNo, //藥品批號
+                                               ExpireDate = bill.ExpireDate, //效期
+
+                                           });
+
+            #region 查詢
+            ViewData["qKeyString"] = qKeyString ?? "";
+
+            ViewData["qDate1"] = qDate1;
+            if (qDate1 != null)
+            {
+                ViewData["qDate1"] = ((DateTime)qDate1).ToString("yyyy-MM-dd");
+            }
+
+            ViewData["qDate2"] = qDate2;
+            if (qDate2 != null)
+            {
+                ViewData["qDate2"] = ((DateTime)qDate2).ToString("yyyy-MM-dd");
+            }
+            ViewData["qCbnt"] = qCbnt;
+
+            #endregion
+
+            #region 排序            
+            switch (sortOrder)
+            {
+                case "DrugCode_desc": obj = obj.OrderByDescending(s => s.DrugCode); break;
+                case "DrugCode": obj = obj.OrderBy(s => s.DrugCode); break;
+                default: sortOrder = "DrugCode"; obj = obj.OrderBy(s => s.DrugCode); break;
+            }
+            ViewData["sortOrder"] = sortOrder;
+            #endregion
+
+            #region 分頁
+            if (qKeyString != null)
+            {
+                pageNum = 1;
+            }
+            #endregion
+
+            return View(await PaginatedList<StockingLog>.CreateAsync(obj.AsNoTracking(), pageNum ?? 1, Loginfo.User.pagesize));
+
+        }
+
+        [ActionName("InvnStockTake")]
+        public async Task<IActionResult> InvnStockTake(int? pageNum, string sortOrder, string qKeyString, DateTime? qDate1, DateTime? qDate2, int? qCbnt)
+        {
+            IQueryable<StockingLog> obj = (from bill in _db.StockBill
+                                           join emp in _db.employee on bill.modid equals emp.FID
+                                           //join cabinet in _db.Cabinet on bill.CbntFid equals cabinet.FID
+                                           join cbnt in _db.Cabinet on bill.CbntFid equals cbnt.FID
+                                           join draw in _db.Drawers on cbnt.FID equals draw.CbntFid
+                                           join mnlf in _db.MenuLeft on bill.BillType equals mnlf.OperCode
+                                           join mapPrscptOnbill in _db.MapPrscptOnBill on bill.FID equals mapPrscptOnbill.StockbillFid
+                                           join prscptBill in _db.PrscptBill on mapPrscptOnbill.PrscptFid equals prscptBill.FID
+                                           where bill.BillType == "STK"
+                                           && (!qDate1.HasValue || bill.moddate >= qDate1.Value)
+                                           && (!qDate2.HasValue || bill.moddate <= qDate2.Value.AddDays(1))
+                                           && (qCbnt == null || cbnt.FID.ToString().Equals(qCbnt.ToString()))
+                                           select new StockingLog
+                                           {
+                                               stockBillFid = bill.FID,
+                                               operTime = bill.moddate ?? DateTime.Now, //時間
+                                               billType = bill.BillType, //類型
+                                               billTypeName = mnlf.CatelogName, //類型名稱
+                                               empName = emp.name, //藥師
+                                               empNo = emp.emp_no ?? "", //藥師編號
+                                               CbntFid = cbnt.FID, //藥櫃ID
+                                               CbntName = cbnt.CbntName, //藥櫃
+                                               DrawNo = draw.No.ToString(), //櫃位號碼
+                                               QtyIn = bill.TradeType ? bill.Qty : 0, //進貨數量
+                                               QtyOut = bill.TradeType ? 0 : bill.Qty, //出貨數量
+                                               QtyBefore = bill.SysChkQty + (bill.Qty * (bill.TradeType ? -1 : 1)), //原始數量
+                                               UserChk1 = bill.UserChk1Qty, //一次盤點數量
+                                               UserChk2 = bill.UserChk2Qty, //二次盤點數量
+                                               UserChkErr = !(bill.UserChk1Qty == null || bill.SysChkQty == bill.UserChk1Qty || bill.SysChkQty == bill.UserChk2Qty), //盤點錯誤
+                                               SysChkQty = bill.SysChkQty, //剩餘總數
+                                               OperFinish = true, //操作完成
+                                               DrugCode = bill.DrugCode, //藥物編碼
+                                               DrugName = bill.DrugName.Trim(), //藥物名稱
+                                               OperQty = bill.Qty, //操作總量
+                                               FromFid = bill.FromFid, //來源藥櫃
+                                               PharmCode = prscptBill.Pharmarcy, //藥局簡碼
+                                               PrscptNo = prscptBill.PrscptNo, //領藥號
+                                               PrscptDate = prscptBill.PrscptDate, //出藥日期
+                                               OrderSeq = prscptBill.OrderSeq, //醫令序號
+                                               CtrlDrugGrand = prscptBill.CtrlDrugGrand, //管制藥等級
+                                               PatientNo = prscptBill.PatientNo, //病歷號碼
+                                               PatientSeq = prscptBill.PatientSeq, //病人序號
+                                               PatientName = prscptBill.PatientName, //病人姓名
+                                               DrName = prscptBill.DrName, //醫師姓名
+                                               BedCode = prscptBill.BedCode, //床號
+                                               BatchNo = bill.BatchNo, //藥品批號
+                                               ExpireDate = bill.ExpireDate, //效期
+
+                                           });
+
+            #region 查詢
+            ViewData["qKeyString"] = qKeyString ?? "";
+
+            ViewData["qDate1"] = qDate1;
+            if (qDate1 != null)
+            {
+                ViewData["qDate1"] = ((DateTime)qDate1).ToString("yyyy-MM-dd");
+            }
+
+            ViewData["qDate2"] = qDate2;
+            if (qDate2 != null)
+            {
+                ViewData["qDate2"] = ((DateTime)qDate2).ToString("yyyy-MM-dd");
+            }
+            ViewData["qCbnt"] = qCbnt;
+
+            #endregion
+
+            #region 排序            
+            switch (sortOrder)
+            {
+                case "DrugCode_desc": obj = obj.OrderByDescending(s => s.DrugCode); break;
+                case "DrugCode": obj = obj.OrderBy(s => s.DrugCode); break;
+                default: sortOrder = "DrugCode"; obj = obj.OrderBy(s => s.DrugCode); break;
+            }
+            ViewData["sortOrder"] = sortOrder;
+            #endregion
+
+            #region 分頁
+            if (qKeyString != null)
+            {
+                pageNum = 1;
+            }
+            #endregion
+
+            return View(await PaginatedList<StockingLog>.CreateAsync(obj.AsNoTracking(), pageNum ?? 1, Loginfo.User.pagesize));
+
+        }
+
+        [ActionName("UserLog")]
+        public async Task<IActionResult> UserLog(int? pageNum, string sortOrder, string qKeyString, DateTime? qDate1, DateTime? qDate2)
+        {
+            IQueryable<UserLog> obj = from log in _db.OperateLog
+                                      join emp in _db.employee on log.empFid equals emp.FID
+                                      where log.LogType == "operate"
+                                      && (log.OperateType == "L" || log.OperateType == "DrawOpen")
+                                      select new UserLog
+                                      {
+                                          UserLogFID = log.FID,
+                                          empFid = log.empFid,
+                                          name = emp.name,
+                                          LinkMethod = log.LinkMethod,
+                                          LogType = log.LogType,
+                                          OperateType = log.OperateType,
+                                          LogMsg = log.LogMsg,
+                                          OperateSuccess = log.OperateSuccess,
+                                          ErrorClass = log.ErrorClass,
+                                          ErrorFunction = log.ErrorFunction,
+                                          ErrorMsg = log.ErrorMsg,
+                                          ErrorTrace = log.ErrorTrace,
+                                          LogTime = log.LogTime,
+                                          comFid = log.comFid,
+                                      };
+
+                
+
+            #region 查詢
+            ViewData["qKeyString"] = qKeyString ?? "";
+
+            ViewData["qDate1"] = qDate1;
+            if (qDate1 != null)
+            {
+                ViewData["qDate1"] = ((DateTime)qDate1).ToString("yyyy-MM-dd");
+                obj = obj.Where(U => U.LogTime >= qDate1);
+
+            }
+
+            ViewData["qDate2"] = qDate2;
+            if (qDate2 != null)
+            {
+                ViewData["qDate2"] = ((DateTime)qDate2).ToString("yyyy-MM-dd");
+                obj = obj.Where(U => U.LogTime <= qDate2.Value.AddDays(1));
+            }
+
+            #endregion
+
+            #region 排序            
+            switch (sortOrder)
+            {
+                case "LogTime_desc": obj = obj.OrderByDescending(s => s.LogTime); break;
+                case "LogTime": obj = obj.OrderBy(s => s.LogTime); break;
+                default: sortOrder = "LogTime"; obj = obj.OrderBy(s => s.LogTime); break;
+            }
+            ViewData["sortOrder"] = sortOrder;
+            #endregion
+
+            #region 分頁
+            if (qKeyString != null)
+            {
+                pageNum = 1;
+            }
+            #endregion
+
+            return View(await PaginatedList<UserLog>.CreateAsync(obj.AsNoTracking(), pageNum ?? 1, Loginfo.User.pagesize));
+
+        }
     }
 }
